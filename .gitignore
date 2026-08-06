@@ -1,0 +1,50 @@
+# =========================================================================
+# TicketDesk Master Gitignore
+# =========================================================================
+
+# --- OS & System Cache ---
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+
+# --- IDEs & Code Editors ---
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.settings/
+.classpath
+.project
+.factorypath
+.metadata/
+
+# --- Node / Frontend (Vite + React) ---
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# --- Maven / Backend (Spring Boot) ---
+backend/target/
+backend/.mvn/wrapper/
+backend/*.jar
+backend/*.war
+backend/*.zip
+backend/*.tar.gz
+
+# --- Database & Storage Engines ---
+backend/data/
+*.db
+*.mv.db
+*.trace.db
+
+# --- AI IDE Scratch Directory ---
+.gemini/
+.agents/

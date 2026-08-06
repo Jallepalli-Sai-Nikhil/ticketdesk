@@ -1,0 +1,119 @@
+:root {
+  /* Color Tokens - Modern Minimal Light Theme */
+  --bg-main: hsl(220, 14%, 92%); /* Strong light slate background */
+  
+  --sidebar-bg: #ffffff;
+  --card-bg: #ffffff;
+  
+  --border-color: hsl(220, 13%, 91%); /* Thin grey border */
+  --border-focus: hsl(263, 90%, 65%);
+  
+  /* Stacking Shadows */
+  --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+  --shadow-layered-1: 0 8px 24px -4px rgba(0, 0, 0, 0.1), 0 4px 12px -6px rgba(0, 0, 0, 0.06);
+  --shadow-layered-2: 0 24px 48px -12px rgba(0, 0, 0, 0.16), 0 8px 16px -8px rgba(0, 0, 0, 0.08);
+  
+  /* Pastel Accent Colors & Gradients */
+  --accent-primary: hsl(263, 90%, 62%); /* Violet */
+  --accent-secondary: hsl(171, 90%, 42%); /* Teal */
+  
+  --highlight-violet: linear-gradient(135deg, hsl(263, 90%, 94%) 0%, hsl(263, 90%, 88%) 100%);
+  --highlight-teal: linear-gradient(135deg, hsl(171, 90%, 94%) 0%, hsl(171, 90%, 88%) 100%);
+  --highlight-rose: linear-gradient(135deg, hsl(350, 90%, 94%) 0%, hsl(350, 90%, 88%) 100%);
+  --highlight-amber: linear-gradient(135deg, hsl(45, 90%, 94%) 0%, hsl(45, 90%, 88%) 100%);
+  
+  --text-primary: hsl(220, 15%, 15%);
+  --text-secondary: hsl(220, 12%, 40%);
+  --text-muted: hsl(220, 9%, 60%);
+  
+  /* Status Colors (Pastel-style backgrounds with solid text) */
+  --status-open-bg: hsl(200, 100%, 96%);
+  --status-open-text: hsl(200, 95%, 40%);
+  --status-open-border: hsl(200, 90%, 90%);
+
+  --status-inprogress-bg: hsl(42, 100%, 96%);
+  --status-inprogress-text: hsl(38, 92%, 42%);
+  --status-inprogress-border: hsl(42, 90%, 88%);
+
+  --status-resolved-bg: hsl(150, 80%, 95%);
+  --status-resolved-text: hsl(150, 84%, 32%);
+  --status-resolved-border: hsl(150, 80%, 90%);
+
+  --status-closed-bg: hsl(210, 20%, 95%);
+  --status-closed-text: hsl(210, 15%, 45%);
+  --status-closed-border: hsl(210, 20%, 90%);
+
+  /* Priority Colors */
+  --priority-low-bg: hsl(215, 20%, 96%);
+  --priority-low-text: hsl(215, 15%, 45%);
+  --priority-low-border: hsl(215, 20%, 90%);
+
+  --priority-medium-bg: hsl(38, 100%, 96%);
+  --priority-medium-text: hsl(38, 92%, 42%);
+  --priority-medium-border: hsl(38, 90%, 88%);
+
+  --priority-high-bg: hsl(350, 100%, 96%);
+  --priority-high-text: hsl(350, 84%, 48%);
+  --priority-high-border: hsl(350, 90%, 88%);
+
+  /* Fonts */
+  --font-family-title: 'Outfit', sans-serif;
+  --font-family-body: 'Inter', sans-serif;
+
+  /* Transitions */
+  --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Global Reset & Base Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family-body);
+  background: var(--bg-main);
+  color: var(--text-primary);
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Lenis Smooth Scroll Boilerplate */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis-stopped {
+  overflow: hidden;
+}
+.lenis-scrolling iframe {
+  pointer-events: none;
+}
