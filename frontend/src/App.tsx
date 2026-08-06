@@ -549,7 +549,9 @@ export default function App() {
   const toggleTheme = (e: React.MouseEvent, targetDark: boolean) => {
     if (isDarkMode === targetDark) return;
     
-    const doc = document as any;
+    const doc = document as unknown as Document & {
+      startViewTransition?: (cb: () => void) => void;
+    };
     if (!doc.startViewTransition) {
       setIsDarkMode(targetDark);
       return;
