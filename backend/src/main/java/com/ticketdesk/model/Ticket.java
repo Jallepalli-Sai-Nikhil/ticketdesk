@@ -45,6 +45,14 @@ public class Ticket {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "reported_by")
+    private String reportedBy;
+
+    @NotNull(message = "Category is required")
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TicketCategory category;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -54,6 +62,12 @@ public class Ticket {
         }
         if (priority == null) {
             priority = TicketPriority.LOW;
+        }
+        if (reportedBy == null) {
+            reportedBy = "anonymous";
+        }
+        if (category == null) {
+            category = TicketCategory.SOFTWARE;
         }
     }
 

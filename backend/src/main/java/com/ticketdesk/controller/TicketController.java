@@ -2,6 +2,7 @@ package com.ticketdesk.controller;
 
 import com.ticketdesk.exception.ResourceNotFoundException;
 import com.ticketdesk.model.Ticket;
+import com.ticketdesk.model.TicketCategory;
 import com.ticketdesk.model.TicketPriority;
 import com.ticketdesk.model.TicketStatus;
 import com.ticketdesk.repository.TicketRepository;
@@ -33,17 +34,16 @@ public class TicketController {
     @GetMapping
     public List<Ticket> getAllTickets(
             @RequestParam(required = false) TicketStatus status,
-            @RequestParam(required = false) TicketPriority priority) {
+            @RequestParam(required = false) TicketPriority priority,
+            @RequestParam(required = false) TicketCategory category) {
         
-        if (status != null && priority != null) {
-            return ticketRepository.findByStatusAndPriority(status, priority);
-        } else if (status != null) {
-            return ticketRepository.findByStatus(status);
-        } else if (priority != null) {
-            return ticketRepository.findByPriority(priority);
-        } else {
-            return ticketRepository.findAll();
-        }
+        List<Ticket> tickets = ticketRepository.findAll();
+        
+        return tickets.stream()
+                .filter(t -> status == null || t.getStatus() == status)
+                .filter(t -> priority == null || t.getPriority() == priority)
+                .filter(t -> category == null || t.getCategory() == category)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @GetMapping("/{id}")
@@ -61,6 +61,12 @@ public class TicketController {
         ticket.setDescription(ticketDetails.getDescription());
         ticket.setStatus(ticketDetails.getStatus());
         ticket.setPriority(ticketDetails.getPriority());
+        if (ticketDetails.getReportedBy() != null) {
+            ticket.setReportedBy(ticketDetails.getReportedBy());
+        }
+        if (ticketDetails.getCategory() != null) {
+            ticket.setCategory(ticketDetails.getCategory());
+        }
 
         return ticketRepository.save(ticket);
     }

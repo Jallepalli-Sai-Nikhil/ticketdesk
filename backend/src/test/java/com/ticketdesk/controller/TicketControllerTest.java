@@ -2,6 +2,7 @@ package com.ticketdesk.controller;
 
 import tools.jackson.databind.ObjectMapper;
 import com.ticketdesk.model.Ticket;
+import com.ticketdesk.model.TicketCategory;
 import com.ticketdesk.model.TicketPriority;
 import com.ticketdesk.model.TicketStatus;
 import com.ticketdesk.repository.TicketRepository;
@@ -46,6 +47,7 @@ public class TicketControllerTest {
                 .description("Test description")
                 .status(TicketStatus.OPEN)
                 .priority(TicketPriority.MEDIUM)
+                .category(TicketCategory.SOFTWARE)
                 .build();
 
         mockMvc.perform(post("/api/tickets")
@@ -64,11 +66,13 @@ public class TicketControllerTest {
                 .title("Ticket One")
                 .status(TicketStatus.OPEN)
                 .priority(TicketPriority.LOW)
+                .category(TicketCategory.SOFTWARE)
                 .build();
         Ticket ticket2 = Ticket.builder()
                 .title("Ticket Two")
                 .status(TicketStatus.IN_PROGRESS)
                 .priority(TicketPriority.HIGH)
+                .category(TicketCategory.HARDWARE)
                 .build();
 
         ticketRepository.save(ticket1);
@@ -87,6 +91,7 @@ public class TicketControllerTest {
                 .title("Get Me")
                 .status(TicketStatus.OPEN)
                 .priority(TicketPriority.LOW)
+                .category(TicketCategory.SOFTWARE)
                 .build();
         ticket = ticketRepository.save(ticket);
 
@@ -108,6 +113,7 @@ public class TicketControllerTest {
                 .title("Old Title")
                 .status(TicketStatus.OPEN)
                 .priority(TicketPriority.LOW)
+                .category(TicketCategory.SOFTWARE)
                 .build();
         ticket = ticketRepository.save(ticket);
 
@@ -115,6 +121,7 @@ public class TicketControllerTest {
                 .title("New Title")
                 .status(TicketStatus.IN_PROGRESS)
                 .priority(TicketPriority.HIGH)
+                .category(TicketCategory.SOFTWARE)
                 .build();
 
         mockMvc.perform(put("/api/tickets/" + ticket.getId())
@@ -132,16 +139,19 @@ public class TicketControllerTest {
                 .title("T1")
                 .status(TicketStatus.OPEN)
                 .priority(TicketPriority.LOW)
+                .category(TicketCategory.SOFTWARE)
                 .build();
         Ticket ticket2 = Ticket.builder()
                 .title("T2")
                 .status(TicketStatus.OPEN)
                 .priority(TicketPriority.MEDIUM)
+                .category(TicketCategory.HARDWARE)
                 .build();
         Ticket ticket3 = Ticket.builder()
                 .title("T3")
                 .status(TicketStatus.IN_PROGRESS)
                 .priority(TicketPriority.HIGH)
+                .category(TicketCategory.SOFTWARE)
                 .build();
 
         ticketRepository.save(ticket1);
