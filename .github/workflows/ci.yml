@@ -119,7 +119,7 @@ jobs:
         # Test 1: Create Ticket
         echo "Test 1: Creating a ticket..."
         CREATE_RES=$(curl -s -X POST -H "Content-Type: application/json" \
-          -d '{"title":"CI Smoke Incident","description":"Generated automatically by CI pipeline","status":"OPEN","priority":"HIGH"}' \
+          -d '{"title":"CI Smoke Incident","description":"Generated automatically by CI pipeline","status":"OPEN","priority":"HIGH","category":"SOFTWARE"}' \
           http://localhost:8080/api/tickets)
         echo "Create Ticket Response: $CREATE_RES"
         if [[ "$CREATE_RES" != *"CI Smoke Incident"* ]]; then
