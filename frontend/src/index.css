@@ -1,69 +1,7 @@
 :root {
-  /* Color Tokens - Deskline Light Theme */
-  --bg-main: #EEF1F5;
-  --sidebar-bg: linear-gradient(180deg, #161B24 0%, #10141B 100%);
-  --card-bg: #FFFFFF;
-  --surface-2: #F6F8FA;
-  
-  --border-color: #E4E8ED;
-  --border-focus: #FF5A2E;
-  
-  /* Stacking Shadows */
-  --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
-  --shadow-layered-1: 0 8px 24px -4px rgba(0, 0, 0, 0.1), 0 4px 12px -6px rgba(0, 0, 0, 0.06);
-  --shadow-layered-2: 0 20px 45px -20px rgba(23, 28, 38, 0.18);
-  
-  /* Pastel Accent Colors & Gradients */
-  --accent-primary: #FF5A2E; /* Deskline Orange-Red */
-  --accent-secondary: #0EA5A0; /* Deskline Teal */
-  
-  --highlight-violet: linear-gradient(135deg, #EBE8FE 0%, #D8D2FD 100%);
-  --highlight-teal: linear-gradient(135deg, #DEF7F4 0%, #C7EEE9 100%);
-  --highlight-rose: linear-gradient(135deg, #FFE7DE 0%, #FBD9CB 100%);
-  --highlight-amber: linear-gradient(135deg, #FDF0DA 0%, #F6E2B8 100%);
-  
-  --text-primary: #171C26;
-  --text-secondary: #5B6472;
-  --text-muted: #7C8494;
-  
-  /* Status Colors */
-  --status-open-bg: #FFE7DE;
-  --status-open-text: #C43B15;
-  --status-open-border: #FBD9CB;
-
-  --status-inprogress-bg: #FDF0DA;
-  --status-inprogress-text: #A9720A;
-  --status-inprogress-border: #F6E2B8;
-
-  --status-resolved-bg: #DEF7F4;
-  --status-resolved-text: #0B8580;
-  --status-resolved-border: #C7EEE9;
-
-  --status-closed-bg: #EEF1F5;
-  --status-closed-text: #5B6472;
-  --status-closed-border: #E4E8ED;
-
-  /* Priority Colors */
-  --priority-low-bg: #DEF7F4;
-  --priority-low-text: #0B8580;
-  --priority-low-border: #C7EEE9;
-
-  --priority-medium-bg: #FDF0DA;
-  --priority-medium-text: #A9720A;
-  --priority-medium-border: #F6E2B8;
-
-  --priority-high-bg: #FFE7DE;
-  --priority-high-text: #C43B15;
-  --priority-high-border: #FBD9CB;
-
   /* Fonts */
-  --font-family-title: 'Space Grotesk', sans-serif;
   --font-family-body: 'Inter', sans-serif;
-  --font-family-mono: 'IBM Plex Mono', monospace;
-
-  /* Transitions */
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.25s ease;
+  --font-family-title: 'Plus Jakarta Sans', sans-serif;
 }
 
 /* Global Reset & Base Styles */
@@ -75,8 +13,8 @@
 
 body {
   font-family: var(--font-family-body);
-  background: var(--bg-main);
-  color: var(--text-primary);
+  background: #131313;
+  color: #e5e2e1;
   min-height: 100vh;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -90,31 +28,77 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-main);
+  background: #131313;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: rgba(255, 255, 255, 0.2);
 }
 
-/* Lenis Smooth Scroll Boilerplate */
-html.lenis, html.lenis body {
-  height: auto;
+/* Glass Card styling from Stitch UI */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) !important;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
-.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-.lenis-stopped {
-  overflow: hidden;
-}
-.lenis-scrolling iframe {
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
   pointer-events: none;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(180, 197, 255, 0.3) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37) !important;
+}
+
+/* Status/Priority Badges from Stitch UI */
+.status-badge {
+  background: rgba(180, 197, 255, 0.1);
+  box-shadow: 0 0 10px rgba(180, 197, 255, 0.2);
+  color: #b4c5ff;
+}
+
+.status-badge.critical {
+  background: rgba(255, 180, 171, 0.1);
+  box-shadow: 0 0 10px rgba(255, 180, 171, 0.2);
+  color: #ffb4ab;
+}
+
+.status-badge.high {
+  background: rgba(255, 185, 95, 0.1);
+  box-shadow: 0 0 10px rgba(255, 185, 95, 0.2);
+  color: #ffb95f;
+}
+
+.status-badge.normal {
+  background: rgba(111, 251, 190, 0.1);
+  box-shadow: 0 0 10px rgba(111, 251, 190, 0.2);
+  color: #6ffbbe;
+}
+
+/* Hide Plotly Modebar */
+.modebar {
+  display: none !important;
+}
+
+/* Custom styles for Plotly Container */
+.plotly-chart-container {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
 }

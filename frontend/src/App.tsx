@@ -442,6 +442,45 @@ export default function App() {
 
   // Interactive Plotly Charts Effect
   useEffect(() => {
+    // 1. Overview Page Chart
+    if (selectedNavId === 'overview' && !inspectedTicket) {
+      const categories = ['SOFTWARE', 'HARDWARE', 'NETWORK', 'SECURITY'];
+      const categoryLabels = ['Software', 'Hardware', 'Network', 'Access/Security'];
+      const categoryValues = categories.map(cat => authorizedTickets.filter(t => t.category === cat).length);
+      
+      const chartEl = document.getElementById('categoryChart');
+      if (chartEl) {
+        Plotly.newPlot('categoryChart', [{
+          x: categoryLabels,
+          y: categoryValues,
+          type: 'bar',
+          marker: {
+            color: ['#2563eb', '#b4c5ff', '#00a572', '#ffb4ab'], // Obsidian Flux colors
+            opacity: 0.85,
+            line: {
+              color: 'rgba(255,255,255,0.1)',
+              width: 1
+            }
+          }
+        }], {
+          paper_bgcolor: 'rgba(0,0,0,0)',
+          plot_bgcolor: 'rgba(0,0,0,0)',
+          font: { family: 'Inter, sans-serif', color: '#c3c6d7' },
+          xaxis: {
+            gridcolor: 'rgba(255,255,255,0.05)',
+            tickfont: { size: 12, color: '#c3c6d7' }
+          },
+          yaxis: {
+            gridcolor: 'rgba(255,255,255,0.05)',
+            zerolinecolor: 'rgba(255,255,255,0.1)',
+            tickfont: { color: '#c3c6d7' }
+          },
+          margin: { l: 40, r: 10, t: 10, b: 30 }
+        }, { responsive: true, displayModeBar: false });
+      }
+    }
+
+    // 2. Reports Page Charts
     if (selectedNavId === 'reports' && !inspectedTicket) {
       const categories = ['SOFTWARE', 'HARDWARE', 'NETWORK', 'SECURITY'];
       const categoryLabels = ['Software', 'Hardware', 'Network', 'Access/Security'];
@@ -451,14 +490,14 @@ export default function App() {
       const priorityLabels = ['Low Urgency', 'Medium Urgency', 'High Criticality'];
       const priorityValues = priorities.map(pri => authorizedTickets.filter(t => t.priority === pri).length);
 
-      // Pie chart markup
+      // Pie chart
       Plotly.newPlot('plotly-pie-chart', [{
         values: categoryValues,
         labels: categoryLabels,
         type: 'pie',
-        hole: 0.4,
+        hole: 0.45,
         marker: {
-          colors: ['#FF5A2E', '#0EA5A0', '#f5a623', '#171c26']
+          colors: ['#2563eb', '#b4c5ff', '#00a572', '#ffb4ab']
         },
         textinfo: 'percent',
         hoverinfo: 'label+percent+value',
@@ -467,61 +506,61 @@ export default function App() {
       }], {
         title: {
           text: 'Category Incident Breakdown',
-          font: { family: 'Outfit, sans-serif', size: 16, weight: '800', color: '#171c26' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
         },
         height: 330,
-        margin: { t: 40, b: 20, l: 20, r: 20 },
+        margin: { t: 50, b: 20, l: 20, r: 20 },
         showlegend: true,
-        legend: { orientation: 'h', x: 0.1, y: -0.1 },
+        legend: { orientation: 'h', x: 0.1, y: -0.1, font: { color: '#c3c6d7' } },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)'
       }, { responsive: true, displayModeBar: false });
 
-      // Bar chart markup
+      // Bar chart
       Plotly.newPlot('plotly-bar-chart', [{
         x: priorityLabels,
         y: priorityValues,
         type: 'bar',
         marker: {
-          color: ['#0ea5a0', '#f5a623', '#FF5A2E'],
+          color: ['#00a572', '#ffb95f', '#ffb4ab'],
           line: { width: 0 }
         },
         width: 0.5
       }], {
         title: {
           text: 'Urgency Criticality Allocation',
-          font: { family: 'Outfit, sans-serif', size: 16, weight: '800', color: '#171c26' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
         },
         height: 330,
-        margin: { t: 40, b: 40, l: 30, r: 20 },
+        margin: { t: 50, b: 40, l: 30, r: 20 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
-        yaxis: { dtick: 1, gridcolor: '#E7EAEF' },
-        xaxis: { gridcolor: 'rgba(0,0,0,0)' }
+        yaxis: { dtick: 1, gridcolor: 'rgba(255,255,255,0.05)', tickfont: { color: '#c3c6d7' } },
+        xaxis: { gridcolor: 'rgba(0,0,0,0)', tickfont: { color: '#c3c6d7' } }
       }, { responsive: true, displayModeBar: false });
 
-      // Line chart markup
+      // Line chart
       Plotly.newPlot('plotly-line-chart', [{
         x: ['Aug 5', 'Aug 6', 'Aug 7', 'Aug 8', 'Aug 9'],
         y: [2, 4, 3, 5, authorizedTickets.length],
         type: 'scatter',
         mode: 'lines+markers',
-        line: { color: '#FF5A2E', width: 3 },
-        marker: { size: 8, color: '#171c26' }
+        line: { color: '#2563eb', width: 3 },
+        marker: { size: 8, color: '#b4c5ff' }
       }], {
         title: {
           text: 'Incident Inflow Timeline',
-          font: { family: 'Outfit, sans-serif', size: 16, weight: '800', color: '#171c26' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
         },
         height: 330,
-        margin: { t: 40, b: 40, l: 30, r: 20 },
+        margin: { t: 50, b: 40, l: 30, r: 20 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
-        yaxis: { dtick: 1, gridcolor: '#E7EAEF' },
-        xaxis: { gridcolor: 'rgba(0,0,0,0)' }
+        yaxis: { dtick: 1, gridcolor: 'rgba(255,255,255,0.05)', tickfont: { color: '#c3c6d7' } },
+        xaxis: { gridcolor: 'rgba(0,0,0,0)', tickfont: { color: '#c3c6d7' } }
       }, { responsive: true, displayModeBar: false });
 
-      // Horizontal Bar chart markup
+      // Horizontal Bar chart
       const statusLabels = ['Open', 'Working', 'Resolved', 'Closed'];
       const statusValues = [
         stats.statusCounts.OPEN,
@@ -535,19 +574,19 @@ export default function App() {
         y: statusLabels,
         orientation: 'h',
         marker: {
-          color: ['#ff5a2e', '#f5a623', '#0ea5a0', '#171c26']
+          color: ['#ffb4ab', '#ffb95f', '#00a572', '#b4c5ff']
         }
       }], {
         title: {
           text: 'Operational Lifecycle Distribution',
-          font: { family: 'Outfit, sans-serif', size: 16, weight: '800', color: '#171c26' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
         },
         height: 330,
-        margin: { t: 40, b: 40, l: 70, r: 20 },
+        margin: { t: 50, b: 40, l: 70, r: 20 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
-        xaxis: { dtick: 1, gridcolor: '#E7EAEF' },
-        yaxis: { gridcolor: 'rgba(0,0,0,0)' }
+        xaxis: { dtick: 1, gridcolor: 'rgba(255,255,255,0.05)', tickfont: { color: '#c3c6d7' } },
+        yaxis: { gridcolor: 'rgba(0,0,0,0)', tickfont: { color: '#c3c6d7' } }
       }, { responsive: true, displayModeBar: false });
     }
   }, [selectedNavId, tickets, inspectedTicket, authorizedTickets, stats]);
@@ -588,215 +627,121 @@ export default function App() {
   // 1. AUTH SCREEN GATEWAY RENDERER
   if (!currentUser) {
     return (
-      <div className="auth-container-wrapper">
-        <div className={`auth-shell ${authMode === 'register' ? 'register-mode' : ''}`}>
+      <div className="min-h-screen flex items-center justify-center bg-background text-on-background font-body-md p-4 selection:bg-primary-container selection:text-on-primary-container">
+        <div className="w-full max-w-[440px] glass-card rounded-xl p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
           
-          {/* Left panel: Brand Story */}
-          <div className="brand-panel">
-            <div className="brand-mark">
-              <div className="glyph">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M4 15l4-9 4 9M6 12h4M14 6h6M14 10h6M14 14h4M14 18h6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </div>
-              <span>Deskline</span>
+          {/* Logo / Header */}
+          <div className="flex flex-col items-center mb-8 text-center">
+            <div className="w-12 h-12 rounded-lg bg-primary-container flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+              <span className="material-symbols-outlined text-white text-2xl">dns</span>
             </div>
-
-            <div className="brand-copy">
-              <div className="eyebrow"><span className="dot"></span> Service desk, in one queue</div>
-              <h1 className="display">Every ticket raised, tracked, and closed without the back‑and‑forth.</h1>
-              <p>Sign in to triage requests, watch SLAs in real time, and hand off to the right engineer before anything breaches.</p>
-            </div>
+            <h1 className="font-title-md text-2xl font-bold text-primary tracking-tight">Nexus Control</h1>
+            <p className="font-body-sm text-sm text-on-surface-variant mt-1">Enterprise IT Helpdesk Gateway</p>
           </div>
 
-          {/* Right panel: Form inputs */}
-          <div className="form-panel">
-            <div className="tabs">
-              <button 
-                id="tab-login" 
-                className={authMode === 'login' ? 'active' : ''} 
-                onClick={() => { setAuthMode('login'); setAuthError(''); }}
-              >
-                Log in
-              </button>
-              <button 
-                id="tab-register" 
-                className={authMode === 'register' ? 'active' : ''} 
-                onClick={() => { setAuthMode('register'); setAuthError(''); }}
-              >
-                Create account
-              </button>
-            </div>
+          {/* Mode Switch tabs */}
+          <div className="flex border-b border-outline-variant/20 mb-6">
+            <button 
+              className={`flex-1 pb-3 text-center font-semibold text-sm transition-colors border-b-2 ${authMode === 'login' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+              onClick={() => { setAuthMode('login'); setAuthError(''); }}
+            >
+              Log In
+            </button>
+            <button 
+              className={`flex-1 pb-3 text-center font-semibold text-sm transition-colors border-b-2 ${authMode === 'register' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}
+              onClick={() => { setAuthMode('register'); setAuthError(''); }}
+            >
+              Register
+            </button>
+          </div>
 
-            {authError && (
-              <div style={{ background: 'rgba(230, 74, 32, 0.1)', border: '1px solid rgba(230, 74, 32, 0.3)', borderRadius: '12px', padding: '12px', color: 'var(--accent-dark)', fontSize: '13px', marginBottom: '16px' }}>
-                {authError}
+          {authError && (
+            <div className="mb-4 p-3 bg-error-container/20 border border-error-container/40 rounded-lg text-error text-xs">
+              {authError}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {authMode === 'register' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">First Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Alex" 
+                    value={regFirstName}
+                    onChange={(e) => setRegFirstName(e.target.value)}
+                    required 
+                    className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">Last Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Rowe" 
+                    value={regLastName}
+                    onChange={(e) => setRegLastName(e.target.value)}
+                    required 
+                    className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  />
+                </div>
               </div>
             )}
 
-            {/* Login panel */}
-            <div id="panel-login" className={`auth-tab-panel ${authMode === 'login' ? 'active' : ''}`}>
-              <div className="form-head">
-                <h2>Welcome back</h2>
-                <p>New to Deskline? <a onClick={() => setAuthMode('register')}>Create an account</a></p>
-              </div>
-
-              <form onSubmit={handleAuthSubmit}>
-                <div className="field">
-                  <label htmlFor="login-email">Work email</label>
-                  <div className="input-wrap">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v11a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-11z"/><path d="M5 7l7 5 7-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <input 
-                      id="login-email" 
-                      type="email" 
-                      placeholder="you@company.com" 
-                      value={authUsername}
-                      onChange={(e) => setAuthUsername(e.target.value)}
-                      autoComplete="username"
-                      required 
-                    />
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="login-pass">Password</label>
-                  <div className="input-wrap">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="5" y="10.5" width="14" height="9" rx="2"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg>
-                    <input 
-                      id="login-pass" 
-                      type={showPassword ? 'text' : 'password'} 
-                      placeholder="Enter your password" 
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      autoComplete="current-password"
-                      required 
-                    />
-                    <span className="toggle-visibility" onClick={toggleVis}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="row-between">
-                  <label className="remember"><input type="checkbox" /> Keep me signed in</label>
-                  <a className="forgot" href="#" onClick={(e) => { e.preventDefault(); alert('Demo password reset links dispatched.'); }}>Forgot password?</a>
-                </div>
-
-                <button className="btn-primary" type="submit">
-                  Sign in
-                  <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-              </form>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">Work Email</label>
+              <input 
+                type="email" 
+                placeholder="you@company.com" 
+                value={authUsername}
+                onChange={(e) => setAuthUsername(e.target.value)}
+                autoComplete={authMode === 'login' ? 'username' : 'new-username'}
+                required 
+                className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+              />
             </div>
 
-            {/* Register panel */}
-            <div id="panel-register" className={`auth-tab-panel ${authMode === 'register' ? 'active' : ''}`}>
-              <div className="form-head">
-                <h2>Set up your desk</h2>
-                <p>Already have an account? <a onClick={() => setAuthMode('login')}>Log in</a></p>
-              </div>
-
-              <form onSubmit={handleAuthSubmit}>
-                <div className="form-row">
-                  <div className="field">
-                    <label htmlFor="reg-first">First name</label>
-                    <div className="input-wrap">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg>
-                      <input 
-                        id="reg-first" 
-                        type="text" 
-                        placeholder="Alex" 
-                        value={regFirstName}
-                        onChange={(e) => setRegFirstName(e.target.value)}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="field">
-                    <label htmlFor="reg-last">Last name</label>
-                    <div className="input-wrap">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6.5 7-6.5s7 2.9 7 6.5"/></svg>
-                      <input 
-                        id="reg-last" 
-                        type="text" 
-                        placeholder="Rowe" 
-                        value={regLastName}
-                        onChange={(e) => setRegLastName(e.target.value)}
-                        required 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="reg-email">Work email</label>
-                  <div className="input-wrap">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v11a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-11z"/><path d="M5 7l7 5 7-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <input 
-                      id="reg-email" 
-                      type="email" 
-                      placeholder="you@company.com" 
-                      value={authUsername}
-                      onChange={(e) => setAuthUsername(e.target.value)}
-                      autoComplete="new-username"
-                      required 
-                    />
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="reg-pass">Password</label>
-                  <div className="input-wrap">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="5" y="10.5" width="14" height="9" rx="2"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/></svg>
-                    <input 
-                      id="reg-pass" 
-                      type={showPassword ? 'text' : 'password'} 
-                      placeholder="Create a password" 
-                      value={authPassword}
-                      onChange={(e) => {
-                        setAuthPassword(e.target.value);
-                        checkStrength(e.target.value);
-                      }}
-                      autoComplete="new-password"
-                      required 
-                    />
-                    <span className="toggle-visibility" onClick={toggleVis}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
-                    </span>
-                  </div>
-                  <div className={`strength ${passwordStrength}`}>
-                    <span></span><span></span><span></span>
-                  </div>
-                </div>
-
-                <div className="field">
-                  <label htmlFor="reg-role">Operator Role</label>
-                  <div className="input-wrap">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                    <select 
-                      id="reg-role"
-                      value={authRole}
-                      onChange={(e) => setAuthRole(e.target.value as 'ADMIN' | 'EMPLOYEE')}
-                      style={{ paddingLeft: '40px' }}
-                    >
-                      <option value="EMPLOYEE">Employee (Submitter)</option>
-                      <option value="ADMIN">Admin (Operator)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <label className="remember" style={{ marginTop: '-2px' }}>
-                  <input type="checkbox" required /> I agree to the Terms and Privacy Policy
-                </label>
-
-                <button className="btn-primary" type="submit">
-                  Create account
-                  <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </button>
-              </form>
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={authPassword}
+                onChange={(e) => setAuthPassword(e.target.value)}
+                autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                required 
+                className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-sm text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+              />
             </div>
 
-            <div className="fine-print">Free for teams up to 5 agents. No card required.</div>
-          </div>
+            {authMode === 'register' && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-on-surface-variant mb-2">Operator Role</label>
+                <select 
+                  value={authRole}
+                  onChange={(e) => setAuthRole(e.target.value as 'ADMIN' | 'EMPLOYEE')}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-sm text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                >
+                  <option value="EMPLOYEE">Employee (Submitter)</option>
+                  <option value="ADMIN">Admin (Operator)</option>
+                </select>
+              </div>
+            )}
 
+            <button 
+              type="submit" 
+              className="w-full bg-primary-container hover:bg-primary-container/90 text-white py-2.5 rounded-lg font-semibold text-sm transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center justify-center gap-2 mt-6"
+            >
+              {authMode === 'login' ? 'Sign In' : 'Create Account'}
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-on-surface-variant/60 mt-6">
+            Free for teams up to 5 agents. No card required.
+          </p>
         </div>
       </div>
     );
@@ -804,245 +749,266 @@ export default function App() {
 
   // 2. MAIN LAYOUT AND NAVIGATION
   return (
-    <div className="dashboard-container-wrapper">
+    <div className="flex bg-background text-on-background font-body-md min-h-screen antialiased selection:bg-primary-container selection:text-on-primary-container">
       
       {/* Offline Alert Ticker */}
       {backendStatus === 'OFFLINE' && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: '#f59e0b', color: 'white', padding: '6px 16px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '12px', fontWeight: 600, zIndex: 1100, gap: '10px' }}>
+        <div className="fixed top-0 left-0 right-0 bg-yellow-600 text-white py-1.5 px-4 flex justify-center items-center text-xs font-semibold z-[9999] gap-2">
           <span>Incident Gateway offline. Local cached data loaded.</span>
-          <button onClick={fetchTickets} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: '4px', padding: '2px 8px', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}>Retry Sync</button>
+          <button onClick={fetchTickets} className="bg-white/20 border-none text-white rounded px-2 py-0.5 cursor-pointer text-[11px] font-bold hover:bg-white/30 transition-colors">Retry Sync</button>
         </div>
       )}
 
-      <div className="dashboard-shell" style={{ marginTop: backendStatus === 'OFFLINE' ? '12px' : 0 }}>
-        
-        {/* Sidebar */}
-        <aside className={`sidebar ${sidebarExpanded ? 'expanded' : ''}`}>
-          <div className="brand-container">
-            <button className="brand" onClick={() => setSidebarExpanded(!sidebarExpanded)} title="Toggle Sidebar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="12" x2="21" y2="12"></line>
-                <line x1="3" y1="6" x2="21" y2="6"></line>
-                <line x1="3" y1="18" x2="21" y2="18"></line>
-              </svg>
-            </button>
-            <span className="brand-text">Deskline</span>
-          </div>
-          
-          <nav className="side-nav">
-            <button 
-              className={selectedNavId === 'overview' ? 'active' : ''} 
-              onClick={() => { setSelectedNavId('overview'); setInspectedTicket(null); }}
-              title="Overview"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
-              <span className="nav-label">Overview</span>
-            </button>
-            <button 
-              className={selectedNavId === 'tickets' ? 'active' : ''} 
-              onClick={() => { setSelectedNavId('tickets'); setInspectedTicket(null); }}
-              title="Tickets Queue"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-              <span className="nav-label">Incident Queue</span>
-            </button>
-            <button 
-              className={selectedNavId === 'reports' ? 'active' : ''} 
-              onClick={() => { setSelectedNavId('reports'); setInspectedTicket(null); }}
-              title="Reports & Analytics"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-              <span className="nav-label">Analytics</span>
-            </button>
-            <button 
-              className={selectedNavId === 'team' ? 'active' : ''} 
-              onClick={() => { setSelectedNavId('team'); setInspectedTicket(null); }}
-              title="Support Operators"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-              <span className="nav-label">Support Team</span>
-            </button>
-          </nav>
- 
-          <div className="side-bottom">
-            <button 
-              onClick={() => setIsSettingsOpen(true)}
-              title="Workspace Settings"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-              <span className="nav-label">Settings</span>
-            </button>
-          </div>
-        </aside>
- 
-        {/* Dashboard Main Content Panel */}
-        <main className="panel">
-          
-          {/* Topbar Header */}
-          <header className="topbar">
+      {/* SideNavBar */}
+      <nav className={`fixed left-0 top-0 h-full w-sidebar-width border-r border-outline-variant/20 bg-surface/80 backdrop-blur-xl z-50 flex flex-col py-6 transition-all duration-300 ${sidebarExpanded ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="px-6 mb-8 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+              <span className="material-symbols-outlined text-white">dns</span>
+            </div>
             <div>
-              <h1 className="display">
-                {selectedNavId === 'overview' ? 'Overview' :
-                 selectedNavId === 'tickets' ? 'Tickets Registry' :
-                 selectedNavId === 'reports' ? 'Performance Reports' :
-                 selectedNavId === 'team' ? 'Our Team' :
-                 'Dashboard'}
-              </h1>
-              <div className="sub">
-                {workspaceName} · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                {loading && <span style={{ color: 'var(--accent)', marginLeft: '10px', fontWeight: 600 }}>· Refreshing data...</span>}
+              <h1 className="font-title-md text-base font-bold text-primary">Nexus Control</h1>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">Enterprise IT Ops</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 px-3 space-y-2">
+          <button 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'overview' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            onClick={() => { setSelectedNavId('overview'); setInspectedTicket(null); }}
+          >
+            <span className="material-symbols-outlined text-[20px]">dashboard</span>
+            Dashboard
+          </button>
+          <button 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'tickets' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            onClick={() => { setSelectedNavId('tickets'); setInspectedTicket(null); }}
+          >
+            <span className="material-symbols-outlined text-[20px]">confirmation_number</span>
+            Tickets
+          </button>
+          <button 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'reports' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            onClick={() => { setSelectedNavId('reports'); setInspectedTicket(null); }}
+          >
+            <span className="material-symbols-outlined text-[20px]">analytics</span>
+            Analytics
+          </button>
+          <button 
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'team' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            onClick={() => { setSelectedNavId('team'); setInspectedTicket(null); }}
+          >
+            <span className="material-symbols-outlined text-[20px]">groups</span>
+            Support Team
+          </button>
+        </div>
+
+        <div className="px-3 mt-auto space-y-2">
+          <button 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
+            onClick={() => setIsSettingsOpen(true)}
+          >
+            <span className="material-symbols-outlined text-[20px]">settings</span>
+            Settings
+          </button>
+          <button 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
+            onClick={handleLogout}
+          >
+            <span className="material-symbols-outlined text-[20px]">logout</span>
+            Log Out
+          </button>
+        </div>
+      </nav>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col md:ml-[260px] min-h-screen">
+        
+        {/* Topbar Header */}
+        <header className="fixed top-0 right-0 w-full md:w-[calc(100%-260px)] h-16 bg-surface/50 backdrop-blur-xl border-b border-outline-variant/10 z-40 flex justify-between items-center px-8">
+          <div className="flex items-center md:hidden">
+            <button className="p-2 text-on-surface-variant hover:text-primary transition-all rounded-lg hover:bg-surface-container-high" onClick={() => setSidebarExpanded(!sidebarExpanded)}>
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <h1 className="font-title-md text-base font-bold text-primary ml-2">Nexus Control</h1>
+          </div>
+
+          <div className="hidden md:flex flex-1 max-w-md">
+            <div className="relative w-full">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+              <input 
+                className="w-full bg-surface-container-high/50 border border-outline-variant/30 rounded-full py-1.5 pl-10 pr-4 text-xs text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" 
+                placeholder="Search tickets, assets, users..." 
+                type="text"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setSelectedNavId('tickets'); }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 ml-auto">
+            <div className="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-surface-container-high transition-all" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
+              <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-xs font-bold text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]">
+                {currentUser.username.substring(0, 2).toUpperCase()}
               </div>
+              <div className="hidden sm:block text-left text-xs">
+                <div className="font-semibold text-on-surface">{currentUser.username}</div>
+                <div className="text-[10px] text-on-surface-variant">{currentUser.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</div>
+              </div>
+              <span className="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
             </div>
 
-            <div className="top-actions">
-              <div className="icon-btn" title="Search filter" onClick={() => setSelectedNavId('tickets')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5" strokeLinecap="round"/></svg>
-              </div>
-              <div className="icon-btn" title="Incidents status alerting" onClick={() => setSelectedNavId('overview')}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"><path d="M6 9a6 6 0 1112 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9z"/><path d="M10 18a2 2 0 004 0"/></svg>
-                {breachingCount > 0 && <div className="dot"></div>}
-              </div>
-              <div className="profile" onClick={() => setProfileMenuOpen(!profileMenuOpen)} style={{ position: 'relative', cursor: 'pointer', userSelect: 'none' }}>
-                <div className="avatar">
-                  {currentUser.username.substring(0, 2)}
+            {profileMenuOpen && (
+              <div className="absolute right-8 top-16 w-56 glass-card rounded-lg p-4 shadow-xl z-50 flex flex-col gap-3">
+                <div className="border-b border-outline-variant/20 pb-2">
+                  <div className="font-semibold text-sm text-on-surface">{currentUser.username}</div>
+                  <div className="text-xs text-on-surface-variant">{currentUser.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</div>
                 </div>
-                <div style={{ marginRight: '4px' }}>
-                  <div className="name">{currentUser.username}</div>
-                  <div className="role">{currentUser.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</div>
-                </div>
-                <svg viewBox="0 0 24 24" fill="none" width="12" height="12" stroke="currentColor" strokeWidth="2" style={{ transform: profileMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease', color: 'var(--ink-soft)' }}><polyline points="6 9 12 15 18 9"/></svg>
-                
-                {profileMenuOpen && (
-                  <div className="profile-dropdown-card" onClick={(e) => e.stopPropagation()}>
-                    <div className="profile-dropdown-header">
-                      <div className="name">{currentUser.username}</div>
-                      <div className="role">{currentUser.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</div>
-                    </div>
-                    <div className="profile-dropdown-body">
-                      <div className="dropdown-meta-item">
-                        <span className="meta-label">Access Level:</span>
-                        <span className="meta-value" style={{ color: currentUser.role === 'ADMIN' ? 'var(--accent)' : 'var(--teal)' }}>
-                          {currentUser.role === 'ADMIN' ? 'Full Admin' : 'Staff Member'}
-                        </span>
-                      </div>
-                      <div className="dropdown-meta-item">
-                        <span className="meta-label">Permissions:</span>
-                        <span className="meta-value" style={{ color: 'var(--ink-soft)', fontSize: '11px' }}>
-                          {currentUser.role === 'ADMIN'
-                            ? 'View, assign, resolve & close all tickets'
-                            : 'Raise & track own tickets'}
-                        </span>
-                      </div>
-                      <div className="dropdown-meta-item">
-                        <span className="meta-label">Status:</span>
-                        <span className="meta-value" style={{ color: '#10b981' }}>● Active</span>
-                      </div>
-                    </div>
-                    <button className="dropdown-logout-btn" onClick={handleLogout}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                      Sign Out
-                    </button>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">Level:</span>
+                    <span className="font-medium text-primary">{currentUser.role === 'ADMIN' ? 'Full Admin' : 'Staff'}</span>
                   </div>
-                )}
-              </div>
-            </div>
-          </header>
-
-          {/* 3. CONDITIONAL PAGE VIEWS */}
-          {inspectedTicket ? (
-            <div className="overview-page-body" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <div style={{ marginBottom: '12px' }}>
-                <button 
-                  onClick={() => setInspectedTicket(null)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: 0 }}
-                >
-                  ← Back to tickets
+                  <div className="flex justify-between">
+                    <span className="text-on-surface-variant">Status:</span>
+                    <span className="text-green-500 font-medium">● Active</span>
+                  </div>
+                </div>
+                <button className="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 py-1.5 rounded text-xs font-semibold transition-colors flex items-center justify-center gap-1 mt-2" onClick={handleLogout}>
+                  <span className="material-symbols-outlined text-xs">logout</span>
+                  Sign Out
                 </button>
               </div>
+            )}
+          </div>
+        </header>
 
-              <div className="card modal-split" style={{ flex: 1, padding: '24px', overflowY: 'auto', background: '#fff', border: '1px solid var(--line)', borderRadius: '24px' }}>
-                
-                {/* Left Column: Comments & Discussion timeline */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderRight: '1px solid var(--line)', paddingRight: '20px' }}>
-                  <div>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' }}>Subject</span>
-                    <h4 style={{ margin: '4px 0 0 0', fontSize: '18px', fontFamily: 'Space Grotesk, sans-serif' }}>{inspectedTicket.title}</h4>
-                    <p style={{ margin: '8px 0 0 0', fontSize: '13.5px', color: 'var(--ink-soft)' }}>{inspectedTicket.description}</p>
-                  </div>
+        {/* Dashboard Canvas */}
+        <main className="flex-1 p-6 md:p-8 pt-24 max-w-[1600px] mx-auto w-full">
+          
+          {/* Main Title Section */}
+          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+            <div>
+              <h2 className="font-headline-lg-mobile md:font-headline-lg text-2xl md:text-3xl font-bold text-on-surface">
+                {inspectedTicket ? 'Incident Details' :
+                 selectedNavId === 'overview' ? 'Command Center' :
+                 selectedNavId === 'tickets' ? 'Tickets Queue' :
+                 selectedNavId === 'reports' ? 'Performance Reports' :
+                 selectedNavId === 'team' ? 'Our Support Team' :
+                 'Dashboard'}
+              </h2>
+              <p className="font-body-sm text-xs text-on-surface-variant mt-1">
+                {inspectedTicket ? `Reviewing Ticket #${inspectedTicket.id}` :
+                 selectedNavId === 'overview' ? 'Live ITSM Metrics & Global Status' :
+                 selectedNavId === 'tickets' ? 'Triage, assign, and manage issues' :
+                 selectedNavId === 'reports' ? 'Interactive analytics visualization' :
+                 selectedNavId === 'team' ? 'Technical operators on-call status' :
+                 workspaceName}
+              </p>
+            </div>
+            
+            {!inspectedTicket && currentUser.role === 'EMPLOYEE' && (
+              <button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-primary-container hover:bg-primary-container/90 text-white px-5 py-2.5 rounded-lg font-semibold text-sm flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)]"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                Raise Incident
+              </button>
+            )}
+          </div>
 
-                  <div style={{ borderTop: '1px dashed var(--line)', paddingTop: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase' }}>Operator Discussion</span>
-                    
-                    <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
-                      <div style={{ color: 'var(--ink-soft)', fontSize: '12px' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--accent)' }}>[FILED]</span> Operator <strong>{inspectedTicket.reportedBy}</strong> raised incident at {formatDate(inspectedTicket.createdAt)}
-                      </div>
-
-                      {(ticketComments[inspectedTicket.id!] || []).map((comm, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px', fontSize: '12px', background: comm.author === 'system' ? 'var(--surface-2)' : '#fff', padding: '8px', borderRadius: '8px', border: comm.author === 'system' ? 'none' : '1px solid var(--line)' }}>
-                          {comm.author !== 'system' && (
-                            <div className="mini-avatar" style={{ background: '#0EA5A0', width: '20px', height: '20px', fontSize: '9px' }}>
-                              {comm.author.substring(0, 2)}
-                            </div>
-                          )}
-                          <div>
-                            <div style={{ fontWeight: 700, textTransform: 'capitalize' }}>{comm.author === 'system' ? 'System Log' : comm.author} <span style={{ fontWeight: 400, color: 'var(--ink-faint)', fontSize: '10px', marginLeft: '6px' }}>{formatDate(comm.date)}</span></div>
-                            <div style={{ marginTop: '3px' }}>{comm.text}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '10px' }}>
-                      <input 
-                        type="text" 
-                        placeholder="Type a message..." 
-                        value={newCommentText} 
-                        onChange={(e) => setNewCommentText(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleAddComment(inspectedTicket.id!);
-                        }}
-                        style={{ flex: 1, padding: '10px 14px', fontSize: '13px', borderRadius: '10px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface-2)' }}
-                      />
-                      <button 
-                        className="btn-primary" 
-                        onClick={() => handleAddComment(inspectedTicket.id!)}
-                        style={{ margin: 0, padding: '10px 18px', fontSize: '12px' }}
-                      >
-                        Send
-                      </button>
-                    </div>
-                  </div>
+          {/* Conditional Subviews */}
+          {inspectedTicket ? (
+            /* ==================== INCIDENT DETAIL INSPECT VIEW ==================== */
+            <div className="glass-card rounded-xl p-6 shadow-xl flex flex-col md:grid md:grid-cols-3 gap-8">
+              
+              {/* Left Column: Description & Comments Timeline */}
+              <div className="md:col-span-2 space-y-6">
+                <div>
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">Subject Summary</span>
+                  <h4 className="text-lg font-bold text-on-surface mt-1">{inspectedTicket.title}</h4>
+                  <p className="text-sm text-on-surface-variant mt-2 bg-surface-container-low/30 border border-outline-variant/10 rounded-lg p-4 leading-relaxed">
+                    {inspectedTicket.description}
+                  </p>
                 </div>
 
-                {/* Right Column: Timelines, Engineers, Resolution controls */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="border-t border-outline-variant/20 pt-6 space-y-4">
+                  <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Operator Discussion</span>
                   
-                  <div className="inspect-stepper-row" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', marginBottom: 0 }}>
-                    <div className={`inspect-step ${inspectedTicket.status === 'OPEN' ? 'active active-pulse' : 'done'}`}>
-                      <span className="inspect-step-num">Step 1</span>
-                      <span className="inspect-step-name" style={{ fontSize: '10px' }}>Open</span>
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    <div className="text-xs text-on-surface-variant/70 italic">
+                      [System Alert] Ticket raised by <span className="font-semibold text-primary">{inspectedTicket.reportedBy}</span> on {formatDate(inspectedTicket.createdAt)}
                     </div>
-                    <div className={`inspect-step ${inspectedTicket.status === 'IN_PROGRESS' ? 'active active-pulse' : inspectedTicket.status !== 'OPEN' ? 'done' : ''}`}>
-                      <span className="inspect-step-num">Step 2</span>
-                      <span className="inspect-step-name" style={{ fontSize: '10px' }}>Working</span>
-                    </div>
-                    <div className={`inspect-step ${inspectedTicket.status === 'RESOLVED' ? 'active active-pulse' : inspectedTicket.status === 'CLOSED' ? 'done' : ''}`}>
-                      <span className="inspect-step-num">Step 3</span>
-                      <span className="inspect-step-name" style={{ fontSize: '10px' }}>Resolved</span>
-                    </div>
-                    <div className={`inspect-step ${inspectedTicket.status === 'CLOSED' ? 'active' : ''}`}>
-                      <span className="inspect-step-num">Step 4</span>
-                      <span className="inspect-step-name" style={{ fontSize: '10px' }}>Closed</span>
+
+                    {(ticketComments[inspectedTicket.id!] || []).map((comm, idx) => (
+                      <div key={idx} className={`flex gap-3 text-xs p-3 rounded-lg border ${comm.author === 'system' ? 'bg-surface-container-low/20 border-outline-variant/10' : 'glass-card'}`}>
+                        {comm.author !== 'system' && (
+                          <div className="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center font-bold text-[10px] text-white">
+                            {comm.author.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-bold text-on-surface capitalize">{comm.author === 'system' ? 'System Audit' : comm.author}</span>
+                            <span className="text-[10px] text-on-surface-variant/60">{formatDate(comm.date)}</span>
+                          </div>
+                          <p className="text-on-surface-variant">{comm.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <input 
+                      type="text" 
+                      placeholder="Add comment..." 
+                      value={newCommentText} 
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(inspectedTicket.id!); }}
+                      className="flex-1 bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-4 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary"
+                    />
+                    <button 
+                      onClick={() => handleAddComment(inspectedTicket.id!)}
+                      className="bg-primary-container hover:bg-primary-container/90 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Workflow Steps & Operator assignment */}
+              <div className="space-y-6 border-t md:border-t-0 md:border-l border-outline-variant/20 pt-6 md:pt-0 md:pl-8 flex flex-col justify-between">
+                <div className="space-y-6">
+                  {/* Status workflow */}
+                  <div>
+                    <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block mb-3">Workflow Lifecycle</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className={`p-2 rounded text-center text-[10px] font-semibold border ${inspectedTicket.status === 'OPEN' ? 'border-yellow-500 bg-yellow-500/10 text-yellow-400' : 'border-outline-variant/10 text-on-surface-variant/40'}`}>
+                        Open
+                      </div>
+                      <div className={`p-2 rounded text-center text-[10px] font-semibold border ${inspectedTicket.status === 'IN_PROGRESS' ? 'border-primary bg-primary/10 text-primary' : inspectedTicket.status !== 'OPEN' ? 'border-outline-variant/20 text-on-surface-variant' : 'border-outline-variant/10 text-on-surface-variant/40'}`}>
+                        Working
+                      </div>
+                      <div className={`p-2 rounded text-center text-[10px] font-semibold border ${inspectedTicket.status === 'RESOLVED' ? 'border-secondary bg-secondary/10 text-secondary' : inspectedTicket.status === 'CLOSED' ? 'border-outline-variant/20 text-on-surface-variant' : 'border-outline-variant/10 text-on-surface-variant/40'}`}>
+                        Resolved
+                      </div>
+                      <div className={`p-2 rounded text-center text-[10px] font-semibold border ${inspectedTicket.status === 'CLOSED' ? 'border-outline-variant/30 bg-white/5 text-on-surface' : 'border-outline-variant/10 text-on-surface-variant/40'}`}>
+                        Closed
+                      </div>
                     </div>
                   </div>
 
-                  <div className="field">
-                    <label>Assignee Allocation</label>
+                  {/* Assignee Selection */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Assigned Engineer</label>
                     {currentUser.role === 'ADMIN' ? (
                       <select 
                         value={ticketAssignees[inspectedTicket.id!] || ''} 
                         onChange={(e) => handleAssigneeChange(inspectedTicket.id!, e.target.value)}
+                        className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
                       >
                         <option value="">Unassigned</option>
                         <option value="Nadia R.">Nadia R. (Network Lead)</option>
@@ -1051,41 +1017,40 @@ export default function App() {
                         <option value="Lior M.">Lior M. (Software Engineer)</option>
                       </select>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'var(--surface-2)', borderRadius: '8px', fontSize: '13px' }}>
-                        <div className="mini-avatar" style={{ background: '#FF5A2E', width: '22px', height: '22px', fontSize: '10px' }}>
-                          {(ticketAssignees[inspectedTicket.id!] || 'UN').substring(0, 2)}
-                        </div>
-                        <strong>{ticketAssignees[inspectedTicket.id!] || 'Unassigned'}</strong>
+                      <div className="flex items-center gap-2 p-2 bg-surface-container-high/20 border border-outline-variant/10 rounded-lg text-xs">
+                        <span className="material-symbols-outlined text-sm text-primary">person</span>
+                        <span className="font-semibold text-on-surface">{ticketAssignees[inspectedTicket.id!] || 'Unassigned'}</span>
                       </div>
                     )}
                   </div>
 
+                  {/* Resolution Notes */}
                   {ticketResolutions[inspectedTicket.id!] && (
-                    <div style={{ background: 'var(--teal-soft)', border: '1px solid var(--teal)', borderRadius: '10px', padding: '12px' }}>
-                      <div style={{ fontSize: '11px', color: '#0b8580', fontWeight: 700, textTransform: 'uppercase' }}>Resolution Actions</div>
-                      <div style={{ fontSize: '12.5px', marginTop: '4px', color: 'var(--ink)' }}>{ticketResolutions[inspectedTicket.id!]}</div>
+                    <div className="p-3 bg-secondary-container/10 border border-secondary-container/20 rounded-lg text-xs">
+                      <div className="font-bold text-secondary uppercase tracking-wider text-[10px] mb-1">Resolution Summary</div>
+                      <p className="text-on-surface-variant">{ticketResolutions[inspectedTicket.id!]}</p>
                     </div>
                   )}
 
                   {currentUser.role === 'ADMIN' && inspectedTicket.status === 'IN_PROGRESS' && (
-                    <div className="field">
-                      <label>Resolution Action Remarks</label>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Resolution Notes</label>
                       <input 
                         type="text" 
-                        placeholder="Specify resolution actions..." 
+                        placeholder="Detail the fix applied..." 
                         value={resolutionInputText}
                         onChange={(e) => setResolutionInputText(e.target.value)}
-                        style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '10px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface-2)' }}
+                        className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
                       />
                     </div>
                   )}
+                </div>
 
-                  {/* Actions buttons */}
-                  <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', borderTop: '1px solid var(--line)', paddingTop: '16px' }}>
+                <div className="space-y-3 pt-6 border-t border-outline-variant/20">
+                  <div className="flex gap-3">
                     {currentUser.role === 'ADMIN' && inspectedTicket.status === 'OPEN' && (
                       <button 
-                        className="btn-primary" 
-                        style={{ background: '#f5a623', borderColor: '#f5a623', margin: 0, width: '100%' }}
+                        className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
                         onClick={() => handleStatusTransition(inspectedTicket, 'IN_PROGRESS')}
                       >
                         Start Progress
@@ -1093,8 +1058,7 @@ export default function App() {
                     )}
                     {currentUser.role === 'ADMIN' && inspectedTicket.status === 'IN_PROGRESS' && (
                       <button 
-                        className="btn-primary" 
-                        style={{ background: '#0ea5a0', borderColor: '#0ea5a0', margin: 0, width: '100%' }}
+                        className="w-full bg-secondary-container hover:bg-secondary-container/90 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
                         onClick={() => handleResolveWithNote(inspectedTicket)}
                       >
                         Resolve Incident
@@ -1102,625 +1066,499 @@ export default function App() {
                     )}
                     {currentUser.role === 'ADMIN' && inspectedTicket.status === 'RESOLVED' && (
                       <button 
-                        className="btn-secondary" 
-                        style={{ background: 'var(--ink)', color: '#fff', borderColor: 'var(--ink)', margin: 0, width: '100%' }}
+                        className="w-full bg-zinc-700 hover:bg-zinc-800 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
                         onClick={() => handleStatusTransition(inspectedTicket, 'CLOSED')}
                       >
                         Close Incident
                       </button>
                     )}
                   </div>
-
+                  <button 
+                    onClick={() => setInspectedTicket(null)}
+                    className="w-full border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant py-2 rounded-lg text-xs font-semibold transition-all text-center block"
+                  >
+                    Back to Queue
+                  </button>
                 </div>
-
               </div>
             </div>
           ) : (
             <>
+              {/* ==================== OVERVIEW DASHBOARD VIEW ==================== */}
               {selectedNavId === 'overview' && (
-                <div className="overview-page-body">
+                <div className="space-y-card-gap">
                   
-                  {currentUser.role === 'ADMIN' ? (
-                    /* ==================== ADMINISTRATOR DASHBOARD ==================== */
-                    <>
-                      {/* Metric grids */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                        
-                        {/* Operational health Card */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', overflow: 'hidden' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>System Health</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></span>
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981' }}>ONLINE</span>
-                            </div>
-                          </div>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>Gateway Active</h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>H2 database instance sync</p>
+                  {/* Bento Grid: Metrics cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-card-gap">
+                    
+                    {/* Operational health Card */}
+                    <div className="glass-card rounded-xl p-5 flex flex-col justify-between h-[140px]">
+                      <div className="flex justify-between items-start">
+                        <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider">System Status</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_#10b981]"></span>
+                          <span className="text-[10px] font-bold text-green-500 uppercase">Online</span>
                         </div>
-
-                        {/* Active Queue Card */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Total System Load</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>
-                            {stats.statusCounts.OPEN + stats.statusCounts.IN_PROGRESS} / {stats.total}
-                          </h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>{stats.statusCounts.OPEN} open · {stats.statusCounts.IN_PROGRESS} working</p>
-                        </div>
-
-                        {/* SLA Risk Card */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', borderLeft: breachingCount > 0 ? '4px solid var(--accent)' : '1px solid var(--line)' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>SLA Alerts</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, color: breachingCount > 0 ? 'var(--accent)' : 'var(--ink)' }}>
-                            {breachingCount} Alert{breachingCount !== 1 ? 's' : ''}
-                          </h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>Critical response active</p>
-                        </div>
-
-                        {/* Resolution SLA KPI */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Team Avg SLA</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>4.2 Hours</h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>SLA target response: &lt; 8.0h</p>
-                        </div>
-
-                        {/* Active Dispatch Operator KPI */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Primary On-Call</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>Nadia R.</h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>Staff dispatcher active</p>
-                        </div>
-
                       </div>
+                      <div>
+                        <div className="font-stat-lg text-2xl font-bold text-on-surface">{backendStatus === 'ONLINE' ? 'Active' : 'Offline'}</div>
+                        <div className="text-[11px] text-on-surface-variant mt-1">H2 Backend Gateway sync active</div>
+                      </div>
+                    </div>
 
-                      {/* Middle Section: SLA sparkline trend & Interactive Ticket Stubs */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                        
-                        {/* SLA Queue Card */}
-                        <div className="card queue-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px' }}>
-                          <div>
-                            <div className="callout">SLA at risk: {breachingCount}</div>
-                            <div className="label">Open tickets</div>
-                            <div className="value-row">
-                              <div className="value">{stats.statusCounts.OPEN + stats.statusCounts.IN_PROGRESS}</div>
-                              <span className="value-tag">active queue</span>
-                            </div>
-                            <div className="delta">
-                              {stats.statusCounts.OPEN} pending raised · avg resolve 6h 40m
-                            </div>
-                          </div>
-
-                          {/* Sparkline Graph */}
-                          <svg className="sparkline" viewBox="0 0 320 90" preserveAspectRatio="none" style={{ marginTop: '20px' }}>
-                            <defs>
-                              <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#FF5A2E" stopOpacity="0.22"/>
-                                <stop offset="100%" stopColor="#FF5A2E" stopOpacity="0"/>
-                              </linearGradient>
-                            </defs>
-                            <path d="M0,55 C20,60 35,35 55,38 C75,41 85,68 105,66 C125,64 140,25 160,24 C180,23 195,52 215,50 C235,48 250,15 270,14 C290,13 305,30 320,20 L320,90 L0,90 Z" fill="url(#fillGrad)"/>
-                            <path d="M0,55 C20,60 35,35 55,38 C75,41 85,68 105,66 C125,64 140,25 160,24 C180,23 195,52 215,50 C235,48 250,15 270,14 C290,13 305,30 320,20" fill="none" stroke="#FF5A2E" strokeWidth="2.5" strokeLinecap="round"/>
-                            <circle cx="215" cy="50" r="4" fill="#FF5A2E" stroke="#fff" strokeWidth="2"/>
-                          </svg>
+                    {/* Active Queue Card */}
+                    <div className="glass-card rounded-xl p-5 flex flex-col justify-between h-[140px]">
+                      <div className="flex justify-between items-start">
+                        <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider">Incident Queue Load</span>
+                        <span className="material-symbols-outlined text-primary text-[20px]">confirmation_number</span>
+                      </div>
+                      <div>
+                        <div className="font-stat-lg text-2xl font-bold text-on-surface">
+                          {stats.statusCounts.OPEN + stats.statusCounts.IN_PROGRESS} / {stats.total}
                         </div>
+                        <div className="text-[11px] text-on-surface-variant mt-1">{stats.statusCounts.OPEN} open · {stats.statusCounts.IN_PROGRESS} working</div>
+                      </div>
+                    </div>
 
-                        {/* Interactive Ticket Stubs list */}
-                        <div className="card" style={{ padding: '24px' }}>
-                          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, marginBottom: '4px' }}>Incident ticket-stubs</h3>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginBottom: '16px' }}>Click any live ticket stub to inspect diagnostic lifecycle details.</p>
-                          
-                          <div className="creative-stub-list">
-                            {authorizedTickets.filter(t => t.status !== 'RESOLVED' && t.status !== 'CLOSED').slice(0, 3).length === 0 ? (
-                              <div style={{ padding: '30px', textAlign: 'center', color: 'var(--ink-soft)', fontSize: '13px' }}>
-                                All clear! No pending incidents.
+                    {/* SLA Alerts Card */}
+                    <div className="glass-card rounded-xl p-5 flex flex-col justify-between h-[140px]">
+                      <div className="flex justify-between items-start">
+                        <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider">SLA Thresholds</span>
+                        <span className="material-symbols-outlined text-error text-[20px]">warning</span>
+                      </div>
+                      <div>
+                        <div className={`font-stat-lg text-2xl font-bold ${breachingCount > 0 ? 'text-error' : 'text-on-surface'}`}>
+                          {breachingCount} SLA Alert{breachingCount !== 1 ? 's' : ''}
+                        </div>
+                        <div className="text-[11px] text-on-surface-variant mt-1">Critical response time &lt; 2h</div>
+                      </div>
+                    </div>
+
+                    {/* Avg SLA Target Card */}
+                    <div className="glass-card rounded-xl p-5 flex flex-col justify-between h-[140px]">
+                      <div className="flex justify-between items-start">
+                        <span className="font-label-caps text-[10px] text-on-surface-variant uppercase tracking-wider">Average Resolve SLA</span>
+                        <span className="material-symbols-outlined text-secondary text-[20px]">timer</span>
+                      </div>
+                      <div>
+                        <div className="font-stat-lg text-2xl font-bold text-on-surface">4.2 Hours</div>
+                        <div className="text-[11px] text-on-surface-variant mt-1">SLA Target resolution: 8.0h</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bento Grid Middle: Plotly Chart & Queue Gauge */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-card-gap">
+                    
+                    {/* Category Volume chart */}
+                    <div className="glass-card rounded-xl p-6 lg:col-span-2 min-h-[380px] flex flex-col justify-between">
+                      <h3 className="font-title-md text-base font-bold text-on-surface">Ticket Volume by Category</h3>
+                      <div className="chart-container flex-1 w-full" id="categoryChart"></div>
+                    </div>
+
+                    {/* Priority Queue list / Quick submission */}
+                    <div className="glass-card rounded-xl p-6 min-h-[380px] flex flex-col justify-between">
+                      {currentUser.role === 'ADMIN' ? (
+                        <>
+                          <h3 className="font-title-md text-base font-bold text-on-surface">Current Queue by Priority</h3>
+                          <div className="flex-1 flex flex-col justify-center gap-4 py-4">
+                            <div className="w-full">
+                              <div className="flex justify-between mb-1.5 text-xs">
+                                <span className="text-error flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-error animate-pulse"></span>Critical (High)</span>
+                                <span className="text-on-surface font-semibold">{authorizedTickets.filter(t => t.priority === 'HIGH').length}</span>
                               </div>
-                            ) : (
-                              authorizedTickets.filter(t => t.status !== 'RESOLVED' && t.status !== 'CLOSED').slice(0, 3).map(t => {
-                                const cat = getCategoryDetails(t.category);
-                                return (
-                                  <div key={t.id} className="ticket-stub" onClick={() => setInspectedTicket(t)}>
-                                    <div className="stub-left">
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: 'IBM Plex Mono, monospace', color: 'var(--ink-soft)' }}>TCK-00{t.id}</span>
-                                        <span className={`stub-priority-badge ${t.priority.toLowerCase()}`}>{t.priority}</span>
-                                      </div>
-                                      <h4 style={{ margin: '6px 0 2px 0', fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{t.title}</h4>
-                                      <div style={{ fontSize: '11.5px', color: 'var(--ink-soft)' }}>category: {cat.label} · owner: {t.reportedBy || 'employee'}</div>
-                                    </div>
-                                    <div className="stub-right">
-                                      <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' }}>{t.status}</span>
-                                      <span style={{ fontSize: '9px', color: 'var(--ink-soft)', marginTop: '4px' }}>INSPECT →</span>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* Quick Ops Deck Controls */}
-                      <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, margin: '12px 0 6px 0' }}>Ops Command Deck</h3>
-                      <div className="ops-control-grid">
-                        <div className="ops-card" onClick={() => {
-                          if (breachingCount > 0) {
-                            alert(`Escalated ${breachingCount} critical incident alerts directly to primary on-call engineer Nadia R.`);
-                          } else {
-                            alert('No critical SLA alerts requiring escalation.');
-                          }
-                        }}>
-                          <div className="ops-icon">
-                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-                          </div>
-                          <h4 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, margin: 0, fontSize: '14.5px' }}>Escalate SLA Alert</h4>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: 0 }}>Send urgent alerts to the on-call admin right away.</p>
-                        </div>
-
-                        <div className="ops-card" onClick={fetchTickets}>
-                          <div className="ops-icon">
-                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/></svg>
-                          </div>
-                          <h4 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, margin: 0, fontSize: '14.5px' }}>Refresh Tickets</h4>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: 0 }}>Pull the latest tickets from the server right now.</p>
-                        </div>
-
-                        <div className="ops-card" onClick={() => setSelectedNavId('team')}>
-                          <div className="ops-icon">
-                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-                          </div>
-                          <h4 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, margin: 0, fontSize: '14.5px' }}>Manage Support Staff</h4>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: 0 }}>Review operator permissions and contacts roster.</p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    /* ==================== EMPLOYEE DASHBOARD ==================== */
-                    <>
-                      {/* Metric grids */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-                        
-                        {/* Operational health Card */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px', position: 'relative', overflow: 'hidden' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>System Health</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ display: 'inline-block', width: '8px', height: '8px', background: '#10b981', borderRadius: '50%', boxShadow: '0 0 8px #10b981' }}></span>
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981' }}>ONLINE</span>
+                              <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+                                <div className="h-full bg-error shadow-[0_0_10px_rgba(255,180,171,0.5)]" style={{ width: `${Math.min(100, (authorizedTickets.filter(t => t.priority === 'HIGH').length / Math.max(1, authorizedTickets.length)) * 100)}%` }}></div>
+                              </div>
+                            </div>
+                            <div className="w-full">
+                              <div className="flex justify-between mb-1.5 text-xs">
+                                <span className="text-tertiary flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-tertiary"></span>Medium Priority</span>
+                                <span className="text-on-surface font-semibold">{authorizedTickets.filter(t => t.priority === 'MEDIUM').length}</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+                                <div className="h-full bg-tertiary" style={{ width: `${Math.min(100, (authorizedTickets.filter(t => t.priority === 'MEDIUM').length / Math.max(1, authorizedTickets.length)) * 100)}%` }}></div>
+                              </div>
+                            </div>
+                            <div className="w-full">
+                              <div className="flex justify-between mb-1.5 text-xs">
+                                <span className="text-primary flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-primary"></span>Low Priority</span>
+                                <span className="text-on-surface font-semibold">{authorizedTickets.filter(t => t.priority === 'LOW').length}</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+                                <div className="h-full bg-primary" style={{ width: `${Math.min(100, (authorizedTickets.filter(t => t.priority === 'LOW').length / Math.max(1, authorizedTickets.length)) * 100)}%` }}></div>
+                              </div>
                             </div>
                           </div>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>Gateway Active</h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>H2 database instance sync</p>
-                        </div>
-
-                        {/* My Open Tickets Card */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>My Active Tickets</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>
-                            {authorizedTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} Queue
-                          </h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>Open & in progress incidents</p>
-                        </div>
-
-                        {/* My Resolved Tickets Card */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>My Resolved</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>
-                            {authorizedTickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length} Done
-                          </h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>Resolved & closed histories</p>
-                        </div>
-
-                        {/* Resolution SLA KPI */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>Target SLA Response</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>&lt; 8.0 Hours</h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>Corporate response tier</p>
-                        </div>
-
-                        {/* Active Dispatch Operator KPI */}
-                        <div className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--ink-soft)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>On-Call Dispatch</span>
-                          <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>Nadia R.</h3>
-                          <p style={{ margin: 0, fontSize: '11px', color: 'var(--ink-soft)' }}>Active system paging dispatcher</p>
-                        </div>
-
-                      </div>
-
-                      {/* Middle Section: Sparkline & Quick Creation Widget */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', marginBottom: '24px' }}>
-                        
-                        {/* SLA Queue Card */}
-                        <div className="card queue-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '24px' }}>
-                          <div>
-                            <div className="callout">System Health Connected</div>
-                            <div className="label">My Active Incidents</div>
-                            <div className="value-row">
-                              <div className="value">{authorizedTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length}</div>
-                              <span className="value-tag">my backlog</span>
-                            </div>
-                            <div className="delta">
-                              Average response feedback response within 4 hours
-                            </div>
-                          </div>
-
-                          {/* Sparkline Graph */}
-                          <svg className="sparkline" viewBox="0 0 320 90" preserveAspectRatio="none" style={{ marginTop: '20px' }}>
-                            <defs>
-                              <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#0EA5A0" stopOpacity="0.22"/>
-                                <stop offset="100%" stopColor="#0EA5A0" stopOpacity="0"/>
-                              </linearGradient>
-                            </defs>
-                            <path d="M0,55 C20,60 35,35 55,38 C75,41 85,68 105,66 C125,64 140,25 160,24 C180,23 195,52 215,50 C235,48 250,15 270,14 C290,13 305,30 320,20 L320,90 L0,90 Z" fill="url(#fillGrad)"/>
-                            <path d="M0,55 C20,60 35,35 55,38 C75,41 85,68 105,66 C125,64 140,25 160,24 C180,23 195,52 215,50 C235,48 250,15 270,14 C290,13 305,30 320,20" fill="none" stroke="#0EA5A0" strokeWidth="2.5" strokeLinecap="round"/>
-                            <circle cx="215" cy="50" r="4" fill="#0EA5A0" stroke="#fff" strokeWidth="2"/>
-                          </svg>
-                        </div>
-
-                        {/* Interactive Inline Ticket Creation Card */}
-                        <div id="inline-creation-card" className="card" style={{ padding: '24px' }}>
-                          <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, marginBottom: '4px' }}>Quick File Incident</h3>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', marginBottom: '16px' }}>Submit a software, hardware, or access incident instantly to administrators.</p>
-                          
-                          <form onSubmit={handleCreateTicket} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        </>
+                      ) : (
+                        <>
+                          <h3 className="font-title-md text-base font-bold text-on-surface mb-2">Quick File Incident</h3>
+                          <form onSubmit={handleCreateTicket} className="space-y-3 flex-1 flex flex-col justify-center">
                             <input 
                               type="text" 
-                              placeholder="Issue Summary (e.g. Printer Offline)" 
+                              placeholder="Issue Summary (e.g. VPN down)" 
                               value={formTitle}
                               onChange={(e) => setFormTitle(e.target.value)}
                               required
-                              style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '10px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface-2)' }}
+                              className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1.5 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
                             />
                             <textarea 
-                              placeholder="Detailed description of the issue..." 
+                              placeholder="Describe details..." 
                               value={formDescription}
                               onChange={(e) => setFormDescription(e.target.value)}
                               required
                               rows={2}
-                              style={{ padding: '10px 14px', fontSize: '13px', borderRadius: '10px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface-2)', resize: 'none', fontFamily: 'inherit' }}
+                              className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1.5 px-3 text-xs text-on-surface focus:outline-none focus:border-primary resize-none font-inherit"
                             />
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                              <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')} style={{ padding: '8px 12px', fontSize: '12.5px', borderRadius: '10px', border: '1px solid var(--line)', background: 'var(--surface-2)' }}>
-                                <option value="LOW">Low priority</option>
-                                <option value="MEDIUM">Medium priority</option>
-                                <option value="HIGH">High Criticality</option>
+                            <div className="grid grid-cols-2 gap-2">
+                              <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')} className="bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1 px-2 text-xs text-on-surface">
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HIGH">High</option>
                               </select>
-                              <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as 'SOFTWARE' | 'HARDWARE' | 'NETWORK' | 'SECURITY')} style={{ padding: '8px 12px', fontSize: '12.5px', borderRadius: '10px', border: '1px solid var(--line)', background: 'var(--surface-2)' }}>
-                                <option value="SOFTWARE">Software issue</option>
-                                <option value="HARDWARE">Hardware issue</option>
-                                <option value="NETWORK">Network failure</option>
-                                <option value="SECURITY">Access/Security</option>
+                              <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as 'SOFTWARE' | 'HARDWARE' | 'NETWORK' | 'SECURITY')} className="bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1 px-2 text-xs text-on-surface">
+                                <option value="SOFTWARE">Software</option>
+                                <option value="HARDWARE">Hardware</option>
+                                <option value="NETWORK">Network</option>
+                                <option value="SECURITY">Access</option>
                               </select>
                             </div>
-                            <button type="submit" className="btn-primary" style={{ margin: '6px 0 0 0', width: '100%' }}>Submit Incident</button>
+                            <button type="submit" className="w-full bg-primary-container hover:bg-primary-container/90 text-white py-2 rounded-lg text-xs font-semibold mt-2 transition-all">Submit Incident</button>
                           </form>
-                        </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
 
-                      </div>
-
-                      {/* Quick Ops Deck Controls */}
-                      <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, margin: '12px 0 6px 0' }}>Ops Command Deck</h3>
-                      <div className="ops-control-grid">
-                        <div className="ops-card" onClick={() => {
-                          const element = document.getElementById('inline-creation-card');
-                          if (element) element.scrollIntoView({ behavior: 'smooth' });
-                        }}>
-                          <div className="ops-icon">
-                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                          </div>
-                          <h4 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, margin: 0, fontSize: '14.5px' }}>File Incident Form</h4>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: 0 }}>Scroll instantly to the active workspace registration card.</p>
-                        </div>
-
-                        <div className="ops-card" onClick={fetchTickets}>
-                          <div className="ops-icon">
-                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 11-.57-8.38l5.67-5.67"/></svg>
-                          </div>
-                          <h4 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, margin: 0, fontSize: '14.5px' }}>Refresh Tickets</h4>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: 0 }}>Pull the latest tickets from the server right now.</p>
-                        </div>
-
-                        <a className="ops-card" href="mailto:admin@company.com" style={{ textDecoration: 'none', color: 'inherit' }}>
-                          <div className="ops-icon">
-                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                          </div>
-                          <h4 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, margin: 0, fontSize: '14.5px' }}>Contact Lead Administrator</h4>
-                          <p style={{ fontSize: '12px', color: 'var(--ink-soft)', margin: 0 }}>Dispatch email queries directly to the Service Desk manager.</p>
-                        </a>
-                      </div>
-                    </>
-                  )}
-
+                  {/* Active Incidents Queue */}
+                  <div className="glass-card rounded-xl p-0 overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-outline-variant/20 flex justify-between items-center">
+                      <h3 className="font-title-md text-base font-bold text-on-surface">Active Incident Queue</h3>
+                      <button onClick={() => setSelectedNavId('tickets')} className="text-primary hover:text-primary-fixed transition-colors text-xs font-semibold flex items-center gap-1">
+                        View All Queue <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      </button>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="bg-surface-container-high/30">
+                            <th className="p-4 text-xs font-semibold text-on-surface-variant tracking-wider border-b border-outline-variant/20">ID</th>
+                            <th className="p-4 text-xs font-semibold text-on-surface-variant tracking-wider border-b border-outline-variant/20">Subject</th>
+                            <th className="p-4 text-xs font-semibold text-on-surface-variant tracking-wider border-b border-outline-variant/20">Category</th>
+                            <th className="p-4 text-xs font-semibold text-on-surface-variant tracking-wider border-b border-outline-variant/20">Priority</th>
+                            <th className="p-4 text-xs font-semibold text-on-surface-variant tracking-wider border-b border-outline-variant/20">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-xs divide-y divide-outline-variant/10">
+                          {authorizedTickets.slice(0, 5).map(t => {
+                            const statusColor = t.status === 'OPEN' ? 'text-yellow-500' : t.status === 'IN_PROGRESS' ? 'text-primary' : t.status === 'RESOLVED' ? 'text-green-500' : 'text-zinc-500';
+                            return (
+                              <tr key={t.id} onClick={() => setInspectedTicket(t)} className="hover:bg-surface-container-high/40 transition-colors cursor-pointer">
+                                <td className="p-4 text-primary font-mono font-semibold">INC-#{t.id}</td>
+                                <td className="p-4 font-semibold text-on-surface">{t.title}</td>
+                                <td className="p-4 text-on-surface-variant">{t.category}</td>
+                                <td className="p-4">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider status-badge ${t.priority === 'HIGH' ? 'critical' : t.priority === 'MEDIUM' ? 'high' : 'normal'}`}>
+                                    {t.priority}
+                                  </span>
+                                </td>
+                                <td className="p-4">
+                                  <span className={`font-semibold ${statusColor}`}>{t.status}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {authorizedTickets.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="p-8 text-center text-on-surface-variant/60">No active incidents reported.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
-          
 
-          {/* Incident Registry Grid View */}
-          {selectedNavId === 'tickets' && (
-            <div className="tickets-page-body">
-              <div className="card" style={{ padding: '24px' }}>
-
-                {/* Role-specific header toolbar */}
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Filter incident keywords..." 
-                    value={search} 
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface-2)' }}
-                  />
-                  {currentUser.role === 'EMPLOYEE' && (
-                    <button 
-                      className="btn-primary" 
-                      onClick={() => setIsCreateModalOpen(true)}
-                      style={{ margin: 0, padding: '10px 20px', fontSize: '13px' }}
-                    >
-                      + Raise Incident
-                    </button>
-                  )}
-                  {currentUser.role === 'ADMIN' && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', padding: '4px 10px', background: 'var(--accent-soft)', borderRadius: '8px', color: 'var(--accent)' }}>
-                        🛡 Admin View — All Incidents
-                      </span>
+              {/* ==================== TICKETS QUEUE VIEW ==================== */}
+              {selectedNavId === 'tickets' && (
+                <div className="glass-card rounded-xl p-6 shadow-xl space-y-6">
+                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between border-b border-outline-variant/20 pb-4">
+                    <input 
+                      type="text" 
+                      placeholder="Search and filter incident keywords..." 
+                      value={search} 
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full sm:max-w-md bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-4 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    />
+                    
+                    <div className="flex gap-2">
+                      {currentUser.role === 'ADMIN' && (
+                        <span className="text-[10px] font-bold py-1 px-3 bg-primary/10 border border-primary/20 rounded-full text-primary flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[12px]">security</span>
+                          Full Administrator Control View
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {filteredTickets.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--ink-soft)' }}>No tickets matched filter query.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="space-y-4">
                     {filteredTickets.map(t => {
-                      const cat = getCategoryDetails(t.category);
-                      const statusColor = t.status === 'OPEN' ? '#f59e0b' : t.status === 'IN_PROGRESS' ? '#3b82f6' : t.status === 'RESOLVED' ? '#10b981' : '#6b7280';
+                      const statusColor = t.status === 'OPEN' ? 'text-yellow-500' : t.status === 'IN_PROGRESS' ? 'text-primary' : t.status === 'RESOLVED' ? 'text-green-500' : 'text-zinc-500';
                       return (
-                        <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                            <div className={`cat-icon ${cat.bgClass}`}>
-                              {cat.icon}
+                        <div key={t.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-surface-container-low/20 border border-outline-variant/10 rounded-xl gap-4 hover:border-primary/30 transition-all">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-primary font-bold text-xs">INC-#{t.id}</span>
+                              <span className="text-xs text-on-surface-variant/50">· by {t.reportedBy}</span>
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 700 }}>{t.title}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--ink-soft)', marginTop: '2px' }}>
-                                #{t.id} ·{' '}
-                                <span style={{ fontWeight: 700, color: statusColor }}>{t.status.replace('_', ' ')}</span>
-                                {' · '}{t.priority}
-                                {currentUser.role === 'ADMIN' && <span style={{ marginLeft: '8px', color: 'var(--ink-faint)' }}>· by {t.reportedBy}</span>}
-                              </div>
+                            <h4 className="font-semibold text-sm text-on-surface mt-1">{t.title}</h4>
+                            <div className="flex gap-2 items-center text-[10px] text-on-surface-variant mt-1">
+                              <span className={`font-semibold ${statusColor}`}>{t.status.replace('_', ' ')}</span>
+                              <span>·</span>
+                              <span>{t.category}</span>
+                              <span>·</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider status-badge ${t.priority === 'HIGH' ? 'critical' : t.priority === 'MEDIUM' ? 'high' : 'normal'}`}>
+                                {t.priority}
+                              </span>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                            <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px' }} onClick={() => setInspectedTicket(t)}>Inspect</button>
-                            {/* Admin-only quick actions */}
+
+                          <div className="flex gap-2 items-center w-full sm:w-auto">
+                            <button className="flex-1 sm:flex-none border border-outline-variant/30 hover:bg-surface-container-high/30 text-on-surface text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => setInspectedTicket(t)}>Inspect</button>
+                            
+                            {/* Admin Quick Status Updates */}
                             {currentUser.role === 'ADMIN' && t.status === 'OPEN' && (
-                              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: '#3b82f6', borderColor: '#93c5fd' }} onClick={() => handleStatusTransition(t, 'IN_PROGRESS')}>▶ Start</button>
+                              <button className="flex-1 sm:flex-none bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => handleStatusTransition(t, 'IN_PROGRESS')}>Start</button>
                             )}
                             {currentUser.role === 'ADMIN' && t.status === 'IN_PROGRESS' && (
-                              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: '#10b981', borderColor: '#6ee7b7' }} onClick={() => handleStatusTransition(t, 'RESOLVED')}>✓ Resolve</button>
+                              <button className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => { setInspectedTicket(t); setResolutionInputText(''); }}>Resolve</button>
                             )}
                             {currentUser.role === 'ADMIN' && t.status === 'RESOLVED' && (
-                              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: '#6b7280', borderColor: '#d1d5db' }} onClick={() => handleStatusTransition(t, 'CLOSED')}>✗ Close</button>
+                              <button className="flex-1 sm:flex-none bg-zinc-700 hover:bg-zinc-800 text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => handleStatusTransition(t, 'CLOSED')}>Close</button>
                             )}
                             {currentUser.role === 'ADMIN' && (
-                              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => t.id && handleDeleteTicket(t.id)}>Delete</button>
+                              <button className="flex-1 sm:flex-none border border-red-500/20 hover:bg-red-500/10 text-red-400 text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => t.id && handleDeleteTicket(t.id)}>Delete</button>
                             )}
-                            {/* Employee-only edit action */}
                             {currentUser.role === 'EMPLOYEE' && t.status === 'OPEN' && (
-                              <button className="btn-secondary" style={{ padding: '6px 12px', fontSize: '12px', color: 'var(--teal)', borderColor: 'var(--teal)' }} onClick={() => { setEditingTicket(t); setIsEditModalOpen(true); }}>Edit</button>
+                              <button className="flex-1 sm:flex-none border border-primary/20 hover:bg-primary/10 text-primary text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => { setEditingTicket(t); setFormTitle(t.title); setFormDescription(t.description); setFormPriority(t.priority); setFormCategory(t.category); setIsEditModalOpen(true); }}>Edit</button>
                             )}
                           </div>
                         </div>
                       );
                     })}
+                    {filteredTickets.length === 0 && (
+                      <div className="text-center py-12 text-on-surface-variant/50 text-sm">No incidents matched your query filter.</div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
+              {/* ==================== DETAILED REPORT CHARTS ==================== */}
+              {selectedNavId === 'reports' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
+                    <div id="plotly-pie-chart" className="plotly-chart-container"></div>
+                  </div>
+                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
+                    <div id="plotly-bar-chart" className="plotly-chart-container"></div>
+                  </div>
+                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
+                    <div id="plotly-line-chart" className="plotly-chart-container"></div>
+                  </div>
+                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
+                    <div id="plotly-horizontal-chart" className="plotly-chart-container"></div>
+                  </div>
+                </div>
+              )}
 
-          {/* Performance Report Charts */}
-          {selectedNavId === 'reports' && (
-            <div className="reports-page-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <div id="plotly-pie-chart" className="plotly-chart-container"></div>
-                <div id="plotly-bar-chart" className="plotly-chart-container"></div>
-                <div id="plotly-line-chart" className="plotly-chart-container"></div>
-                <div id="plotly-horizontal-chart" className="plotly-chart-container"></div>
-              </div>
-            </div>
-          )}
+              {/* ==================== TEAM MEMBER PROFILES ==================== */}
+              {selectedNavId === 'team' && (
+                <div className="glass-card rounded-xl p-6 shadow-xl space-y-6">
+                  <div className="border-b border-outline-variant/20 pb-4">
+                    <h3 className="font-title-md text-lg font-bold text-on-surface">IT Helpdesk Support Staff</h3>
+                    <p className="text-xs text-on-surface-variant mt-1">Operational engineers and lead dispatchers currently active on the node.</p>
+                  </div>
 
-          {/* Team Operator Profiles */}
-          {selectedNavId === 'team' && (
-            <div className="team-page-body">
-              <div className="card" style={{ padding: '24px' }}>
-                <h3 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800 }}>Our Support Team</h3>
-                <p style={{ fontSize: '13px', color: 'var(--ink-soft)', marginBottom: '20px' }}>Click the email icon next to anyone below to contact them directly.</p>
-                
-                <div className="team-grid">
-                  {/* Administrators section */}
-                  <div className="team-section">
-                    <h4>Administrators</h4>
-                    <div className="team-card">
-                      <div className="team-avatar">AD</div>
-                      <div className="team-info">
-                        <div className="team-name">admin</div>
-                        <div className="team-role">Administrator</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-4 bg-surface-container-low/20 border border-outline-variant/10 rounded-xl flex gap-4 items-center">
+                      <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center font-bold text-white shadow-md">
+                        AD
                       </div>
-                      <a href="mailto:admin@company.com" className="email-btn" title="Send email">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-on-surface">admin</h4>
+                        <p className="text-xs text-primary font-medium mt-0.5">Manager & lead dispatcher</p>
+                        <p className="text-[10px] text-green-500 mt-1">● Primary On-Call</p>
+                      </div>
+                      <a href="mailto:admin@company.com" className="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-high rounded-lg">
+                        <span className="material-symbols-outlined text-[20px]">mail</span>
                       </a>
                     </div>
-                  </div>
-
-                  {/* Support Employees section */}
-                  <div className="team-section">
-                    <h4>Support Staff</h4>
-                    <div className="team-card">
-                      <div className="team-avatar">EM</div>
-                      <div className="team-info">
-                        <div className="team-name">employee</div>
-                        <div className="team-role">Standard Support Agent</div>
+                    <div className="p-4 bg-surface-container-low/20 border border-outline-variant/10 rounded-xl flex gap-4 items-center">
+                      <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-white shadow-md">
+                        NR
                       </div>
-                      <a href="mailto:employee@company.com" className="email-btn" title="Email Operator">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-on-surface">Nadia R.</h4>
+                        <p className="text-xs text-secondary font-medium mt-0.5">Network Lead Operations</p>
+                        <p className="text-[10px] text-on-surface-variant/60 mt-1">Active operators console</p>
+                      </div>
+                      <a href="mailto:nadia@company.com" className="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-high rounded-lg">
+                        <span className="material-symbols-outlined text-[20px]">mail</span>
                       </a>
                     </div>
                   </div>
                 </div>
-
-              </div>
-            </div>
-          )}
-          </>
+              )}
+            </>
           )}
 
         </main>
       </div>
 
-      {/* 4. MODALS AND OVERLAYS */}
-      
-      {/* Create Ticket Modal */}
+      {/* ==================== CREATE NEW TICKET MODAL OVERLAY ==================== */}
       {isCreateModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsCreateModalOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h3>File Incident Record</h3>
-              <button className="modal-close-btn" onClick={() => setIsCreateModalOpen(false)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="w-full max-w-[480px] glass-card rounded-xl p-6 shadow-2xl space-y-4">
+            <header className="flex justify-between items-center border-b border-outline-variant/20 pb-3">
+              <h3 className="font-title-md text-base font-bold text-on-surface">Raise Helpdesk Incident</h3>
+              <button className="text-on-surface-variant hover:text-on-surface transition-colors" onClick={() => setIsCreateModalOpen(false)}>
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </header>
 
-            <form onSubmit={handleCreateTicket}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label>Title</label>
-                  <input 
-                    type="text" 
-                    placeholder="Brief summary of the issue"
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    required
-                  />
+            <form onSubmit={handleCreateTicket} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Subject Summary</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Printer Offline" 
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  required
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Detailed Description</label>
+                <textarea 
+                  placeholder="Provide logs or configuration detail..." 
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  required
+                  rows={3}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary resize-none font-inherit"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Priority</label>
+                  <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')} className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary">
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High Critical</option>
+                  </select>
                 </div>
-                <div className="field">
-                  <label>Description</label>
-                  <input 
-                    type="text" 
-                    placeholder="Provide details about the incident"
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="field">
-                    <label>Priority</label>
-                    <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}>
-                      <option value="LOW">Low</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="HIGH">High</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>Category</label>
-                    <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as 'SOFTWARE' | 'HARDWARE' | 'NETWORK' | 'SECURITY')}>
-                      <option value="SOFTWARE">Software</option>
-                      <option value="HARDWARE">Hardware</option>
-                      <option value="NETWORK">Network</option>
-                      <option value="SECURITY">Access Security</option>
-                    </select>
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Category</label>
+                  <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as 'SOFTWARE' | 'HARDWARE' | 'NETWORK' | 'SECURITY')} className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary">
+                    <option value="SOFTWARE">Software</option>
+                    <option value="HARDWARE">Hardware</option>
+                    <option value="NETWORK">Network</option>
+                    <option value="SECURITY">Access Security</option>
+                  </select>
                 </div>
               </div>
-              
-              <footer className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ margin: 0 }}>File Incident</button>
-              </footer>
+
+              <div className="flex gap-3 pt-4 border-t border-outline-variant/20 justify-end">
+                <button type="button" className="border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant text-xs font-semibold py-2 px-4 rounded-lg transition-colors" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
+                <button type="submit" className="bg-primary-container hover:bg-primary-container/90 text-white text-xs font-semibold py-2 px-4 rounded-lg transition-all">Submit Ticket</button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Edit Ticket Modal */}
+      {/* ==================== EDIT INCIDENT MODAL OVERLAY ==================== */}
       {isEditModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsEditModalOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h3>Modify Incident Record</h3>
-              <button className="modal-close-btn" onClick={() => setIsEditModalOpen(false)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="w-full max-w-[480px] glass-card rounded-xl p-6 shadow-2xl space-y-4">
+            <header className="flex justify-between items-center border-b border-outline-variant/20 pb-3">
+              <h3 className="font-title-md text-base font-bold text-on-surface">Edit Helpdesk Incident</h3>
+              <button className="text-on-surface-variant hover:text-on-surface transition-colors" onClick={() => setIsEditModalOpen(false)}>
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </header>
 
-            <form onSubmit={handleEditTicketSubmit}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="field">
-                  <label>Title</label>
-                  <input 
-                    type="text" 
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    required
-                  />
+            <form onSubmit={handleEditTicketSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Subject Summary</label>
+                <input 
+                  type="text" 
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
+                  required
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Detailed Description</label>
+                <textarea 
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  required
+                  rows={3}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary resize-none font-inherit"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Priority</label>
+                  <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')} className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary">
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
                 </div>
-                <div className="field">
-                  <label>Description</label>
-                  <input 
-                    type="text" 
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="field">
-                    <label>Priority</label>
-                    <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}>
-                      <option value="LOW">Low</option>
-                      <option value="MEDIUM">Medium</option>
-                      <option value="HIGH">High</option>
-                    </select>
-                  </div>
-                  <div className="field">
-                    <label>Category</label>
-                    <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as 'SOFTWARE' | 'HARDWARE' | 'NETWORK' | 'SECURITY')}>
-                      <option value="SOFTWARE">Software</option>
-                      <option value="HARDWARE">Hardware</option>
-                      <option value="NETWORK">Network</option>
-                      <option value="SECURITY">Access Security</option>
-                    </select>
-                  </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Category</label>
+                  <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as 'SOFTWARE' | 'HARDWARE' | 'NETWORK' | 'SECURITY')} className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary">
+                    <option value="SOFTWARE">Software</option>
+                    <option value="HARDWARE">Hardware</option>
+                    <option value="NETWORK">Network</option>
+                    <option value="SECURITY">Access Security</option>
+                  </select>
                 </div>
               </div>
-              
-              <footer className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ margin: 0 }}>Save changes</button>
-              </footer>
+
+              <div className="flex gap-3 pt-4 border-t border-outline-variant/20 justify-end">
+                <button type="button" className="border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant text-xs font-semibold py-2 px-4 rounded-lg transition-colors" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                <button type="submit" className="bg-primary-container hover:bg-primary-container/90 text-white text-xs font-semibold py-2 px-4 rounded-lg transition-all">Save Changes</button>
+              </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Workspace Settings Modal */}
+      {/* ==================== WORKSPACE SETTINGS MODAL OVERLAY ==================== */}
       {isSettingsOpen && (
-        <div className="modal-backdrop" onClick={() => setIsSettingsOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <header className="modal-header">
-              <h3>Workspace Profile Settings</h3>
-              <button className="modal-close-btn" onClick={() => setIsSettingsOpen(false)}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="w-full max-w-[400px] glass-card rounded-xl p-6 shadow-2xl space-y-4">
+            <header className="flex justify-between items-center border-b border-outline-variant/20 pb-3">
+              <h3 className="font-title-md text-base font-bold text-on-surface">Workspace Settings</h3>
+              <button className="text-on-surface-variant hover:text-on-surface transition-colors" onClick={() => setIsSettingsOpen(false)}>
+                <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </header>
 
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="field">
-                <label>Workspace Node Name</label>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Workspace Node Name</label>
                 <input 
                   type="text" 
                   value={workspaceName}
@@ -1728,13 +1566,15 @@ export default function App() {
                     setWorkspaceName(e.target.value);
                     localStorage.setItem('workspaceName', e.target.value);
                   }}
-                  style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--line)', outline: 'none', background: 'var(--surface-2)' }}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
                 />
               </div>
             </div>
 
-            <footer className="modal-footer">
-              <button className="btn-primary" style={{ margin: 0, width: '100%' }} onClick={() => setIsSettingsOpen(false)}>Apply Settings</button>
+            <footer className="pt-4 border-t border-outline-variant/20">
+              <button className="w-full bg-primary-container hover:bg-primary-container/90 text-white py-2 rounded-lg text-xs font-semibold transition-all" onClick={() => setIsSettingsOpen(false)}>
+                Apply Workspace Settings
+              </button>
             </footer>
           </div>
         </div>
