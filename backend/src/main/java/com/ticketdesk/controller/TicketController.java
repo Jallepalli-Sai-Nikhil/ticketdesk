@@ -1,11 +1,14 @@
 package com.ticketdesk.controller;
 
 import com.ticketdesk.exception.ResourceNotFoundException;
+import com.ticketdesk.model.Comment;
 import com.ticketdesk.model.Ticket;
 import com.ticketdesk.model.TicketCategory;
 import com.ticketdesk.model.TicketPriority;
 import com.ticketdesk.model.TicketStatus;
+import com.ticketdesk.repository.CommentRepository;
 import com.ticketdesk.repository.TicketRepository;
+import com.ticketdesk.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +23,13 @@ import java.util.Map;
 public class TicketController {
 
     private final TicketRepository ticketRepository;
+    private final CommentRepository commentRepository;
+    private final UserRepository userRepository;
 
-    public TicketController(TicketRepository ticketRepository) {
+    public TicketController(TicketRepository ticketRepository, CommentRepository commentRepository, UserRepository userRepository) {
         this.ticketRepository = ticketRepository;
+        this.commentRepository = commentRepository;
+        this.userRepository = userRepository;
     }
 
     @PostMapping
@@ -67,7 +74,57 @@ public class TicketController {
         if (ticketDetails.getCategory() != null) {
             ticket.setCategory(ticketDetails.getCategory());
         }
+        ticket.setAssignedTo(ticketDetails.getAssignedTo());
+        ticket.setResolution(ticketDetails.getResolution());
+        ticket.setAttachmentKey(ticketDetails.getAttachmentKey());
 
+        return ticketRepository.save(ticket);
+    }
+
+    @GetMapping("/{id}/comments")
+    public List<Comment> getComments(@PathVariable Long id) {
+        return commentRepository.findByTicketId(id);
+    }
+
+    @PostMapping("/{id}/comments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Comment addComment(@PathVariable Long id, @Valid @RequestBody Comment comment) {
+        comment.setTicketId(id);
+        return commentRepository.save(comment);
+    }
+
+    @PutMapping("/{id}/assign")
+    public Ticket assignTicket(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+        String assignedTo = body.get("assignedTo");
+        ticket.setAssignedTo(assignedTo);
+        ticket.setUpdatedAt(java.time.LocalDateTime.now());
+        return ticketRepository.save(ticket);
+    }
+
+    @PutMapping("/{id}/resolve")
+    public Ticket resolveTicket(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+        String resolution = body.get("resolution");
+        ticket.setStatus(TicketStatus.RESOLVED);
+        ticket.setResolution(resolution);
+        ticket.setUpdatedAt(java.time.LocalDateTime.now());
+        return ticketRepository.save(ticket);
+    }
+
+    @PutMapping("/{id}/reopen")
+    public Ticket reopenTicket(@PathVariable Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+        if (ticket.getAssignedTo() != null && !ticket.getAssignedTo().trim().isEmpty()) {
+            ticket.setStatus(TicketStatus.IN_PROGRESS);
+        } else {
+            ticket.setStatus(TicketStatus.OPEN);
+        }
+        ticket.setResolution(null);
+        ticket.setUpdatedAt(java.time.LocalDateTime.now());
         return ticketRepository.save(ticket);
     }
 

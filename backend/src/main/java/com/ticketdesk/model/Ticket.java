@@ -45,12 +45,21 @@ public class Ticket {
     @Column(nullable = false)
     private TicketCategory category;
 
+    @Column(name = "assigned_to")
+    private String assignedTo;
+
+    @Column(columnDefinition = "TEXT")
+    private String resolution;
+
+    @Column(name = "attachment_key")
+    private String attachmentKey;
+
     // Default Constructor
     public Ticket() {
     }
 
     // All-args Constructor
-    public Ticket(Long id, String title, String description, TicketStatus status, TicketPriority priority, LocalDateTime createdAt, LocalDateTime updatedAt, String reportedBy, TicketCategory category) {
+    public Ticket(Long id, String title, String description, TicketStatus status, TicketPriority priority, LocalDateTime createdAt, LocalDateTime updatedAt, String reportedBy, TicketCategory category, String assignedTo, String resolution, String attachmentKey) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -60,6 +69,9 @@ public class Ticket {
         this.updatedAt = updatedAt;
         this.reportedBy = reportedBy;
         this.category = category;
+        this.assignedTo = assignedTo;
+        this.resolution = resolution;
+        this.attachmentKey = attachmentKey;
     }
 
     // Getters and Setters
@@ -135,6 +147,30 @@ public class Ticket {
         this.category = category;
     }
 
+    public String getAssignedTo() {
+        return assignedTo;
+    }
+
+    public void setAssignedTo(String assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
+    public String getResolution() {
+        return resolution;
+    }
+
+    public void setResolution(String resolution) {
+        this.resolution = resolution;
+    }
+
+    public String getAttachmentKey() {
+        return attachmentKey;
+    }
+
+    public void setAttachmentKey(String attachmentKey) {
+        this.attachmentKey = attachmentKey;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -173,6 +209,9 @@ public class Ticket {
         private LocalDateTime updatedAt;
         private String reportedBy;
         private TicketCategory category;
+        private String assignedTo;
+        private String resolution;
+        private String attachmentKey;
 
         TicketBuilder() {
         }
@@ -222,13 +261,28 @@ public class Ticket {
             return this;
         }
 
+        public TicketBuilder assignedTo(String assignedTo) {
+            this.assignedTo = assignedTo;
+            return this;
+        }
+
+        public TicketBuilder resolution(String resolution) {
+            this.resolution = resolution;
+            return this;
+        }
+
+        public TicketBuilder attachmentKey(String attachmentKey) {
+            this.attachmentKey = attachmentKey;
+            return this;
+        }
+
         public Ticket build() {
-            return new Ticket(this.id, this.title, this.description, this.status, this.priority, this.createdAt, this.updatedAt, this.reportedBy, this.category);
+            return new Ticket(this.id, this.title, this.description, this.status, this.priority, this.createdAt, this.updatedAt, this.reportedBy, this.category, this.assignedTo, this.resolution, this.attachmentKey);
         }
 
         @Override
         public String toString() {
-            return "Ticket.TicketBuilder(id=" + this.id + ", title=" + this.title + ", description=" + this.description + ", status=" + this.status + ", priority=" + this.priority + ", createdAt=" + this.createdAt + ", updatedAt=" + this.updatedAt + ", reportedBy=" + this.reportedBy + ", category=" + this.category + ")";
+            return "Ticket.TicketBuilder(id=" + this.id + ", title=" + this.title + ", description=" + this.description + ", status=" + this.status + ", priority=" + this.priority + ", createdAt=" + this.createdAt + ", updatedAt=" + this.updatedAt + ", reportedBy=" + this.reportedBy + ", category=" + this.category + ", assignedTo=" + this.assignedTo + ", resolution=" + this.resolution + ", attachmentKey=" + this.attachmentKey + ")";
         }
     }
 
@@ -246,16 +300,19 @@ public class Ticket {
                java.util.Objects.equals(createdAt, ticket.createdAt) &&
                java.util.Objects.equals(updatedAt, ticket.updatedAt) &&
                java.util.Objects.equals(reportedBy, ticket.reportedBy) &&
-               category == ticket.category;
+               category == ticket.category &&
+               java.util.Objects.equals(assignedTo, ticket.assignedTo) &&
+               java.util.Objects.equals(resolution, ticket.resolution) &&
+               java.util.Objects.equals(attachmentKey, ticket.attachmentKey);
     }
 
     @Override
     public int hashCode() {
-        return java.util.Objects.hash(id, title, description, status, priority, createdAt, updatedAt, reportedBy, category);
+        return java.util.Objects.hash(id, title, description, status, priority, createdAt, updatedAt, reportedBy, category, assignedTo, resolution, attachmentKey);
     }
 
     @Override
     public String toString() {
-        return "Ticket(id=" + id + ", title=" + title + ", description=" + description + ", status=" + status + ", priority=" + priority + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + ", reportedBy=" + reportedBy + ", category=" + category + ")";
+        return "Ticket(id=" + id + ", title=" + title + ", description=" + description + ", status=" + status + ", priority=" + priority + ", createdAt=" + createdAt + ", updatedAt=" + updatedAt + ", reportedBy=" + reportedBy + ", category=" + category + ", assignedTo=" + assignedTo + ", resolution=" + resolution + ", attachmentKey=" + attachmentKey + ")";
     }
 }

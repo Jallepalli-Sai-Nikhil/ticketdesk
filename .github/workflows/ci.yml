@@ -6,14 +6,19 @@ on:
   pull_request:
     branches: [ master, main ]
 
+permissions:
+  contents: read
+
 jobs:
-  build-and-test:
+  ci-pipeline:
     runs-on: ubuntu-latest
 
     steps:
     # 1. Checkout repository
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     # 2. Set up JDK 25.0.1
     - name: Set up JDK 25.0.1
@@ -31,86 +36,95 @@ jobs:
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
 
-    # 4. Install backend dependencies & Compile
-    - name: Backend Compile & Static Analysis
-      run: |
-        mvn -f backend/pom.xml clean compile
-
-    # 5. Run Backend Unit & Integration Tests
+    # 4. Lint & Run unit tests
     - name: Run Backend Tests
-      run: |
-        mvn -f backend/pom.xml test
+      run: mvn -f backend/pom.xml clean test
 
-    # 6. Build Backend Target Artifact
-    - name: Build Backend Jar
+    - name: Install Frontend Dependencies & Lint
       run: |
-        mvn -f backend/pom.xml package -DskipTests
-
-    # 7. Install Frontend Dependencies
-    - name: Install Frontend Dependencies
-      run: |
-        # Generate lockfile if it does not exist (first setup)
         if [ ! -f frontend/package-lock.json ]; then
           npm install --prefix frontend --package-lock-only
         fi
         npm ci --prefix frontend
-
-    # 8. Run Frontend ESLint & TypeScript Checks
-    - name: Frontend Linter & Type Check
-      run: |
         npm run lint --prefix frontend
         npm run build --prefix frontend
 
-    # 9. Security Checks
-    - name: Security Vulnerability Scan
-      run: |
-        echo "### Running Frontend NPM Audit..."
-        npm audit --prefix frontend --audit-level=high || echo "Vulnerabilities found, but proceeding."
-        echo "### Scanning configuration files for secrets..."
-        # Basic check for plain-text password tokens
-        if grep -r "password=" backend/src/main/resources/application.properties; then
-          echo "Warning: Plain password detected in properties"
-        fi
+    # 5. Scan for committed secrets
+    - name: Scan for secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        base: ""
+        head: ${{ github.sha }}
+        extra_args: --only-verified
 
-    # 10. Artifact Verification
-    - name: Verify Build Artifacts
-      run: |
-        if [ ! -f backend/target/backend-0.0.1-SNAPSHOT.jar ]; then
-          echo "Error: Backend JAR not found!"
-          exit 1
-        fi
-        if [ ! -f frontend/dist/index.html ]; then
-          echo "Error: Frontend build output index.html not found!"
-          exit 1
-        fi
-        echo "All artifacts successfully verified!"
+    # 6. Configure AWS credentials
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-south-1
 
-    # 11. Run Smoke Tests
-    - name: Execute Live Smoke Tests
+    # 7. Log in to Amazon ECR
+    - name: Log in to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # 8. Build Docker image with tag based on git commit SHA & push to ECR
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ticketdesk-backend
+        IMAGE_TAG: ${{ github.sha }}
       run: |
-        echo "Starting Spring Boot application in background..."
-        nohup java -jar backend/target/backend-0.0.1-SNAPSHOT.jar > spring-boot.log 2>&1 &
-        SPRING_PID=$!
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile backend
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+    # 9. Update ECS service with the new image
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: render-task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: backend/ticketdesk-task-definition.json
+        container-name: ticketdesk-backend
+        image: ${{ steps.build-image.outputs.image }}
+
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      with:
+        task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+        service: ticketdesk-m0-service
+        cluster: ticketdesk-m0-cluster
+        wait-for-service-stability: true
+
+    # 10. Run live smoke tests against the deployed URL
+    - name: Retrieve Deployed ALB URL & Run Smoke Tests
+      run: |
+        echo "Retrieving ALB DNS Name..."
+        ALB_DNS=$(aws elbv2 describe-load-balancers --names ticketdesk-m0-alb-new --query "LoadBalancers[0].DNSName" --output text --region ap-south-1)
+        DEPLOYED_URL="http://$ALB_DNS"
+        echo "Deployed URL: $DEPLOYED_URL"
         
-        echo "Waiting for backend actuator health check to respond..."
+        echo "Waiting for service to be healthy at $DEPLOYED_URL/health..."
         ATTEMPTS=0
         MAX_ATTEMPTS=30
         HEALTHY=false
         
         while [ $ATTEMPTS -lt $MAX_ATTEMPTS ]; do
-          RESPONSE=$(curl -s http://localhost:8080/actuator/health || true)
+          RESPONSE=$(curl -s $DEPLOYED_URL/health || true)
           echo "Health status response: $RESPONSE"
           if [[ "$RESPONSE" == *'"status":"UP"'* ]]; then
             HEALTHY=true
             break
           fi
           ATTEMPTS=$((ATTEMPTS+1))
-          sleep 2
+          sleep 5
         done
         
         if [ "$HEALTHY" = false ]; then
-          echo "Error: Backend failed to start. Printing logs:"
-          cat spring-boot.log
+          echo "Error: Backend failed to respond with healthy status at $DEPLOYED_URL/health"
           exit 1
         fi
         
@@ -120,7 +134,7 @@ jobs:
         echo "Test 1: Creating a ticket..."
         CREATE_RES=$(curl -s -X POST -H "Content-Type: application/json" \
           -d '{"title":"CI Smoke Incident","description":"Generated automatically by CI pipeline","status":"OPEN","priority":"HIGH","category":"SOFTWARE"}' \
-          http://localhost:8080/api/tickets)
+          $DEPLOYED_URL/api/tickets)
         echo "Create Ticket Response: $CREATE_RES"
         if [[ "$CREATE_RES" != *"CI Smoke Incident"* ]]; then
           echo "Error: Create Ticket endpoint failed!"
@@ -129,7 +143,7 @@ jobs:
         
         # Test 2: Fetch Tickets
         echo "Test 2: Fetching tickets list..."
-        FETCH_RES=$(curl -s http://localhost:8080/api/tickets)
+        FETCH_RES=$(curl -s $DEPLOYED_URL/api/tickets)
         echo "Fetch Tickets Response: $FETCH_RES"
         if [[ "$FETCH_RES" != *"CI Smoke Incident"* ]]; then
           echo "Error: Fetch Ticket endpoint failed!"
@@ -138,18 +152,16 @@ jobs:
         
         # Test 3: Dashboard API
         echo "Test 3: Fetching dashboard stats..."
-        DASH_RES=$(curl -s http://localhost:8080/api/tickets/dashboard)
+        DASH_RES=$(curl -s $DEPLOYED_URL/api/tickets/dashboard)
         echo "Dashboard Response: $DASH_RES"
-        if [[ "$DASH_RES" != *'"total":1'* ]]; then
+        if [[ "$DASH_RES" != *'"total":'* ]]; then
           echo "Error: Dashboard API failed!"
           exit 1
         fi
         
-        echo "Stopping Spring Boot backend..."
-        kill $SPRING_PID
-        echo "Smoke tests completed successfully!"
+        echo "Smoke tests completed successfully against deployed URL!"
 
-    # 12. Pipeline Summary Report
+    # 11. Pipeline Summary Report
     - name: Create Pipeline Summary
       if: always()
       run: |
@@ -158,8 +170,8 @@ jobs:
         echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
         echo "| 📥 Code Checkout | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
         echo "| ☕ Java & Node Setup | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🛠️ Backend Build & Tests | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🎨 Frontend Build & Lint | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🛡️ Security Audit | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🔍 Artifact Verification | ✅ Verified |" >> $GITHUB_STEP_SUMMARY
-        echo "| 🏃 Smoke Tests | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🛠️ Lint & Unit Tests | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🛡️ Secret Scan | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🐳 Build & Push ECR | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🚀 Deploy to ECS | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| 🏃 Live Smoke Tests | ${{ job.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY

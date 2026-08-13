@@ -21,6 +21,17 @@ interface Ticket {
   createdAt?: string;
   updatedAt?: string;
   reportedBy?: string;
+  assignedTo?: string;
+  resolution?: string;
+  attachmentKey?: string;
+}
+
+interface Comment {
+  id?: number;
+  ticketId?: number;
+  author: string;
+  text: string;
+  createdAt?: string;
 }
 
 interface DashboardStats {
@@ -43,7 +54,9 @@ interface User {
   role: 'ADMIN' | 'EMPLOYEE';
 }
 
-const API_BASE = 'http://localhost:8080/api';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? (window.location.port === '5173' || window.location.port === '3000' ? 'http://localhost:8080/api' : '/api')
+  : 'http://ticketdesk-m1-alb-756973487.ap-south-1.elb.amazonaws.com/api';
 
 export default function App() {
   // App States
@@ -65,6 +78,7 @@ export default function App() {
 
   // Core Data States
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
   const [search, setSearch] = useState('');
@@ -121,6 +135,62 @@ export default function App() {
   const [formPriority, setFormPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('LOW');
   const [formCategory, setFormCategory] = useState<'HARDWARE' | 'SOFTWARE' | 'NETWORK' | 'SECURITY'>('SOFTWARE');
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  
+  const [formAttachmentKey, setFormAttachmentKey] = useState<string>('');
+  const [uploadingFile, setUploadingFile] = useState<boolean>(false);
+  const [inspectedAttachmentUrl, setInspectedAttachmentUrl] = useState<string>('');
+  const [inspectedThumbnailUrl, setInspectedThumbnailUrl] = useState<string>('');
+
+  const handleFileUpload = async (file: File) => {
+    setUploadingFile(true);
+    try {
+      const key = `${Date.now()}-${file.name}`;
+      const response = await fetch(`${API_BASE}/attachments/presigned-put?key=${encodeURIComponent(key)}`);
+      if (!response.ok) throw new Error('Failed to get presigned URL');
+      const { url } = await response.json();
+
+      const uploadResponse = await fetch(url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+      if (!uploadResponse.ok) throw new Error('Failed to upload file to S3');
+
+      setFormAttachmentKey(key);
+      alert('File uploaded successfully!');
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed: ' + (err as Error).message);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      await handleFileUpload(e.target.files[0]);
+    }
+  };
+
+  const fetchPresignedUrls = async (key: string) => {
+    try {
+      const getResponse = await fetch(`${API_BASE}/attachments/presigned-get?key=${encodeURIComponent(key)}`);
+      if (getResponse.ok) {
+        const getData = await getResponse.json();
+        setInspectedAttachmentUrl(getData.url);
+      }
+
+      const thumbResponse = await fetch(`${API_BASE}/attachments/presigned-thumbnail?key=${encodeURIComponent(key)}`);
+      if (thumbResponse.ok) {
+        const thumbData = await thumbResponse.json();
+        setInspectedThumbnailUrl(thumbData.url);
+      }
+    } catch (err) {
+      console.error("Error fetching presigned URLs:", err);
+    }
+  };
 
   // Settings State
   const [workspaceName, setWorkspaceName] = useState(() => localStorage.getItem('workspaceName') || 'IT Service Desk');
@@ -151,11 +221,65 @@ export default function App() {
     }
   };
 
+  // Fetch support team users
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/users`);
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+    }
+  };
+
+  // Fetch comments for a specific ticket on-demand
+  const fetchComments = async (ticketId: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/tickets/${ticketId}/comments`);
+      if (response.ok) {
+        const data = await response.json();
+        const normalized = data.map((c: any) => ({
+          author: c.author,
+          text: c.text,
+          date: c.createdAt || new Date().toISOString()
+        }));
+        setTicketComments(prev => ({
+          ...prev,
+          [ticketId]: normalized
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching comments:", err);
+    }
+  };
+
+  // Load ticket comments dynamically when inspected ticket changes
+  useEffect(() => {
+    if (inspectedTicket && inspectedTicket.id) {
+      fetchComments(inspectedTicket.id);
+      if (inspectedTicket.attachmentKey) {
+        fetchPresignedUrls(inspectedTicket.attachmentKey);
+      } else {
+        setInspectedAttachmentUrl('');
+        setInspectedThumbnailUrl('');
+      }
+    }
+  }, [inspectedTicket]);
+
   useEffect(() => {
     if (currentUser) {
       fetchTickets();
+      fetchUsers();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (isSettingsOpen) {
+      fetchUsers();
+    }
+  }, [isSettingsOpen]);
 
   // Auth Operations
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -245,7 +369,8 @@ export default function App() {
       status: 'OPEN',
       priority: formPriority,
       category: formCategory,
-      reportedBy: currentUser?.username || 'employee'
+      reportedBy: currentUser?.username || 'employee',
+      attachmentKey: formAttachmentKey || undefined
     };
 
     try {
@@ -259,6 +384,7 @@ export default function App() {
         setIsCreateModalOpen(false);
         setFormTitle('');
         setFormDescription('');
+        setFormAttachmentKey('');
       } else {
         alert('Server rejected incident filing request.');
       }
@@ -274,6 +400,7 @@ export default function App() {
       setIsCreateModalOpen(false);
       setFormTitle('');
       setFormDescription('');
+      setFormAttachmentKey('');
     }
   };
 
@@ -287,7 +414,8 @@ export default function App() {
       title: formTitle,
       description: formDescription,
       priority: formPriority,
-      category: formCategory
+      category: formCategory,
+      attachmentKey: formAttachmentKey || undefined
     };
 
     try {
@@ -300,6 +428,7 @@ export default function App() {
         fetchTickets();
         setIsEditModalOpen(false);
         setEditingTicket(null);
+        setFormAttachmentKey('');
       } else {
         alert('Server failed to apply modifications.');
       }
@@ -308,6 +437,7 @@ export default function App() {
       setTickets(tickets.map(t => t.id === editingTicket.id ? payload : t));
       setIsEditModalOpen(false);
       setEditingTicket(null);
+      setFormAttachmentKey('');
     }
   };
 
@@ -351,37 +481,66 @@ export default function App() {
   };
 
   // Post a new comment to local timeline
-  const handleAddComment = (ticketId: number) => {
-    if (!newCommentText.trim()) return;
-    const comment = {
-      author: currentUser?.username || 'operator',
-      text: newCommentText.trim(),
-      date: new Date().toISOString()
-    };
-    const currentList = ticketComments[ticketId] || [];
-    setTicketComments({
-      ...ticketComments,
-      [ticketId]: [...currentList, comment]
-    });
-    setNewCommentText('');
+  const handleAddComment = async (ticketId: number) => {
+    if (!newCommentText.trim() || !currentUser) return;
+    try {
+      const response = await fetch(`${API_BASE}/tickets/${ticketId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          author: currentUser.username,
+          text: newCommentText.trim()
+        })
+      });
+      if (response.ok) {
+        setNewCommentText('');
+        fetchComments(ticketId);
+      } else {
+        alert('Failed to submit comment.');
+      }
+    } catch (err) {
+      console.error('Error submitting comment:', err);
+      // Offline fallback:
+      const comment = {
+        author: currentUser.username,
+        text: newCommentText.trim(),
+        date: new Date().toISOString()
+      };
+      const currentList = ticketComments[ticketId] || [];
+      setTicketComments({
+        ...ticketComments,
+        [ticketId]: [...currentList, comment]
+      });
+      setNewCommentText('');
+    }
   };
 
   // Re-assign operator engineer
-  const handleAssigneeChange = (ticketId: number, assigneeName: string) => {
-    setTicketAssignees({
-      ...ticketAssignees,
-      [ticketId]: assigneeName
-    });
-    const comment = {
-      author: 'system',
-      text: `Assigned ticket to ${assigneeName}`,
-      date: new Date().toISOString()
-    };
-    const currentList = ticketComments[ticketId] || [];
-    setTicketComments({
-      ...ticketComments,
-      [ticketId]: [...currentList, comment]
-    });
+  const handleAssigneeChange = async (ticketId: number, username: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/tickets/${ticketId}/assign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignedTo: username })
+      });
+      if (response.ok) {
+        const updatedTicket: Ticket = await response.json();
+        setTickets(prevTickets => prevTickets.map(t => t.id === ticketId ? updatedTicket : t));
+        if (inspectedTicket && inspectedTicket.id === ticketId) {
+          setInspectedTicket(updatedTicket);
+        }
+        fetchComments(ticketId);
+      } else {
+        alert('Failed to assign ticket.');
+      }
+    } catch (err) {
+      console.error('Error assigning ticket:', err);
+      // Offline fallback:
+      setTicketAssignees(prev => ({
+        ...prev,
+        [ticketId]: username
+      }));
+    }
   };
 
   // Resolve with administrative notes
@@ -390,23 +549,89 @@ export default function App() {
       alert('Please specify details regarding resolution actions.');
       return;
     }
-    setTicketResolutions({
-      ...ticketResolutions,
-      [ticket.id!]: resolutionInputText.trim()
-    });
-    const comment = {
-      author: 'system',
-      text: `Resolved: ${resolutionInputText.trim()}`,
-      date: new Date().toISOString()
-    };
-    const currentList = ticketComments[ticket.id!] || [];
-    setTicketComments({
-      ...ticketComments,
-      [ticket.id!]: [...currentList, comment]
-    });
-    
-    setResolutionInputText('');
-    handleStatusTransition(ticket, 'RESOLVED');
+    try {
+      const response = await fetch(`${API_BASE}/tickets/${ticket.id}/resolve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolution: resolutionInputText.trim() })
+      });
+      if (response.ok) {
+        const updatedTicket: Ticket = await response.json();
+        setTickets(prevTickets => prevTickets.map(t => t.id === ticket.id ? updatedTicket : t));
+        if (inspectedTicket && inspectedTicket.id === ticket.id) {
+          setInspectedTicket(updatedTicket);
+        }
+        setResolutionInputText('');
+        fetchComments(ticket.id!);
+      } else {
+        alert('Failed to resolve ticket.');
+      }
+    } catch (err) {
+      console.error('Error resolving ticket:', err);
+      // Offline fallback:
+      setTicketResolutions({
+        ...ticketResolutions,
+        [ticket.id!]: resolutionInputText.trim()
+      });
+      setResolutionInputText('');
+      handleStatusTransition(ticket, 'RESOLVED');
+    }
+  };
+
+  // Reopen a ticket
+  const handleReopenTicket = async (ticketId: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/tickets/${ticketId}/reopen`, {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        const updatedTicket: Ticket = await response.json();
+        setTickets(prevTickets => prevTickets.map(t => t.id === ticketId ? updatedTicket : t));
+        if (inspectedTicket && inspectedTicket.id === ticketId) {
+          setInspectedTicket(updatedTicket);
+        }
+        fetchComments(ticketId);
+      } else {
+        alert('Failed to reopen ticket.');
+      }
+    } catch (err) {
+      console.error('Error reopening ticket:', err);
+    }
+  };
+
+  // Update user role (Admin action)
+  const handleUpdateUserRole = async (username: string, newRole: 'ADMIN' | 'EMPLOYEE') => {
+    try {
+      const response = await fetch(`${API_BASE}/users/${username}/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole })
+      });
+      if (response.ok) {
+        fetchUsers();
+      } else {
+        alert('Failed to update user role.');
+      }
+    } catch (err) {
+      console.error('Error updating user role:', err);
+    }
+  };
+
+  // Delete a user (Admin action)
+  const handleDeleteUser = async (username: string) => {
+    if (!window.confirm(`Are you sure you want to delete user "${username}"?`)) return;
+    try {
+      const response = await fetch(`${API_BASE}/users/${username}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        fetchUsers();
+      } else {
+        alert('Failed to delete user.');
+      }
+    } catch (err) {
+      console.error('Error deleting user:', err);
+    }
   };
 
   // Authorized tickets based on operator role
@@ -797,7 +1022,7 @@ export default function App() {
           </button>
           <button 
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'team' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
-            onClick={() => { setSelectedNavId('team'); setInspectedTicket(null); }}
+            onClick={() => { setSelectedNavId('team'); setInspectedTicket(null); fetchUsers(); }}
           >
             <span className="material-symbols-outlined text-[20px]">groups</span>
             Support Team
@@ -932,6 +1157,36 @@ export default function App() {
                   <p className="text-sm text-on-surface-variant mt-2 bg-surface-container-low/30 border border-outline-variant/10 rounded-lg p-4 leading-relaxed">
                     {inspectedTicket.description}
                   </p>
+                  {inspectedTicket.attachmentKey && (
+                    <div className="mt-4 p-3 bg-surface-container-low/30 border border-outline-variant/10 rounded-lg">
+                      <span className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block mb-2">Attachment</span>
+                      <div className="flex items-center gap-3">
+                        {inspectedThumbnailUrl && (
+                          <img 
+                            src={inspectedThumbnailUrl} 
+                            alt="Thumbnail" 
+                            className="w-16 h-16 object-cover rounded-lg border border-outline-variant/20"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="gray" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+                            }}
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold truncate text-on-surface">{inspectedTicket.attachmentKey}</p>
+                          {inspectedAttachmentUrl && (
+                            <a 
+                              href={inspectedAttachmentUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-xs text-primary hover:underline font-semibold mt-1 inline-block"
+                            >
+                              Download Original File
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-outline-variant/20 pt-6 space-y-4">
@@ -1006,29 +1261,30 @@ export default function App() {
                     <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Assigned Engineer</label>
                     {currentUser.role === 'ADMIN' ? (
                       <select 
-                        value={ticketAssignees[inspectedTicket.id!] || ''} 
+                        value={inspectedTicket.assignedTo || ticketAssignees[inspectedTicket.id!] || ''} 
                         onChange={(e) => handleAssigneeChange(inspectedTicket.id!, e.target.value)}
                         className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
                       >
                         <option value="">Unassigned</option>
-                        <option value="Nadia R.">Nadia R. (Network Lead)</option>
-                        <option value="Jon T.">Jon T. (Hardware Support)</option>
-                        <option value="Sam K.">Sam K. (SSO Security)</option>
-                        <option value="Lior M.">Lior M. (Software Engineer)</option>
+                        {users.map(u => (
+                          <option key={u.username} value={u.username}>
+                            {u.username} ({u.role === 'ADMIN' ? 'Admin' : 'Employee'})
+                          </option>
+                        ))}
                       </select>
                     ) : (
                       <div className="flex items-center gap-2 p-2 bg-surface-container-high/20 border border-outline-variant/10 rounded-lg text-xs">
                         <span className="material-symbols-outlined text-sm text-primary">person</span>
-                        <span className="font-semibold text-on-surface">{ticketAssignees[inspectedTicket.id!] || 'Unassigned'}</span>
+                        <span className="font-semibold text-on-surface">{inspectedTicket.assignedTo || ticketAssignees[inspectedTicket.id!] || 'Unassigned'}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Resolution Notes */}
-                  {ticketResolutions[inspectedTicket.id!] && (
+                  {(inspectedTicket.resolution || ticketResolutions[inspectedTicket.id!]) && (
                     <div className="p-3 bg-secondary-container/10 border border-secondary-container/20 rounded-lg text-xs">
                       <div className="font-bold text-secondary uppercase tracking-wider text-[10px] mb-1">Resolution Summary</div>
-                      <p className="text-on-surface-variant">{ticketResolutions[inspectedTicket.id!]}</p>
+                      <p className="text-on-surface-variant">{inspectedTicket.resolution || ticketResolutions[inspectedTicket.id!]}</p>
                     </div>
                   )}
 
@@ -1065,11 +1321,27 @@ export default function App() {
                       </button>
                     )}
                     {currentUser.role === 'ADMIN' && inspectedTicket.status === 'RESOLVED' && (
+                      <div className="flex gap-2 w-full">
+                        <button 
+                          className="w-1/2 bg-zinc-700 hover:bg-zinc-800 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
+                          onClick={() => handleStatusTransition(inspectedTicket, 'CLOSED')}
+                        >
+                          Close Incident
+                        </button>
+                        <button 
+                          className="w-1/2 bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
+                          onClick={() => handleReopenTicket(inspectedTicket.id!)}
+                        >
+                          Reopen
+                        </button>
+                      </div>
+                    )}
+                    {currentUser.role === 'ADMIN' && inspectedTicket.status === 'CLOSED' && (
                       <button 
-                        className="w-full bg-zinc-700 hover:bg-zinc-800 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
-                        onClick={() => handleStatusTransition(inspectedTicket, 'CLOSED')}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 rounded-lg text-xs font-semibold transition-colors"
+                        onClick={() => handleReopenTicket(inspectedTicket.id!)}
                       >
-                        Close Incident
+                        Reopen Incident
                       </button>
                     )}
                   </div>
@@ -1224,6 +1496,15 @@ export default function App() {
                                 <option value="SECURITY">Access</option>
                               </select>
                             </div>
+                            <div className="space-y-1">
+                              <input 
+                                type="file" 
+                                onChange={handleFileChange}
+                                className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1 px-2 text-[10px] text-on-surface focus:outline-none focus:border-primary"
+                              />
+                              {uploadingFile && <span className="text-[9px] text-primary animate-pulse">Uploading to S3...</span>}
+                              {formAttachmentKey && <span className="text-[9px] text-green-500 truncate block">Uploaded: {formAttachmentKey}</span>}
+                            </div>
                             <button type="submit" className="w-full bg-primary-container hover:bg-primary-container/90 text-white py-2 rounded-lg text-xs font-semibold mt-2 transition-all">Submit Incident</button>
                           </form>
                         </>
@@ -1342,7 +1623,7 @@ export default function App() {
                               <button className="flex-1 sm:flex-none border border-red-500/20 hover:bg-red-500/10 text-red-400 text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => t.id && handleDeleteTicket(t.id)}>Delete</button>
                             )}
                             {currentUser.role === 'EMPLOYEE' && t.status === 'OPEN' && (
-                              <button className="flex-1 sm:flex-none border border-primary/20 hover:bg-primary/10 text-primary text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => { setEditingTicket(t); setFormTitle(t.title); setFormDescription(t.description); setFormPriority(t.priority); setFormCategory(t.category); setIsEditModalOpen(true); }}>Edit</button>
+                              <button className="flex-1 sm:flex-none border border-primary/20 hover:bg-primary/10 text-primary text-xs font-semibold py-1.5 px-3 rounded-lg transition-all" onClick={() => { setEditingTicket(t); setFormTitle(t.title); setFormDescription(t.description); setFormPriority(t.priority); setFormCategory(t.category); setFormAttachmentKey(t.attachmentKey || ''); setIsEditModalOpen(true); }}>Edit</button>
                             )}
                           </div>
                         </div>
@@ -1382,32 +1663,46 @@ export default function App() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="p-4 bg-surface-container-low/20 border border-outline-variant/10 rounded-xl flex gap-4 items-center">
-                      <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center font-bold text-white shadow-md">
-                        AD
+                    {users.map(u => (
+                      <div key={u.username} className="p-4 bg-surface-container-low/20 border border-outline-variant/10 rounded-xl flex gap-4 items-center justify-between">
+                        <div className="flex gap-4 items-center">
+                          <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center font-bold text-white shadow-md">
+                            {u.username.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-sm text-on-surface">{u.username}</h4>
+                            <p className="text-xs text-primary font-medium mt-0.5">{u.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</p>
+                            <p className="text-[10px] text-on-surface-variant/60 mt-1">
+                              {u.username === currentUser.username ? '● Logged In User' : '● Registered Node User'}
+                            </p>
+                          </div>
+                        </div>
+                        {currentUser?.role === 'ADMIN' && (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={u.role}
+                              onChange={(e) => handleUpdateUserRole(u.username, e.target.value as 'ADMIN' | 'EMPLOYEE')}
+                              className="bg-surface-container-high/40 border border-outline-variant/30 rounded py-1 px-2 text-xs text-on-surface focus:outline-none focus:border-primary"
+                            >
+                              <option value="EMPLOYEE">Employee</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                            {currentUser.username !== u.username && (
+                              <button
+                                onClick={() => handleDeleteUser(u.username)}
+                                className="p-1 text-red-400 hover:bg-red-500/10 rounded transition-colors flex items-center justify-center"
+                                title="Delete User"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm text-on-surface">admin</h4>
-                        <p className="text-xs text-primary font-medium mt-0.5">Manager & lead dispatcher</p>
-                        <p className="text-[10px] text-green-500 mt-1">● Primary On-Call</p>
-                      </div>
-                      <a href="mailto:admin@company.com" className="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-high rounded-lg">
-                        <span className="material-symbols-outlined text-[20px]">mail</span>
-                      </a>
-                    </div>
-                    <div className="p-4 bg-surface-container-low/20 border border-outline-variant/10 rounded-xl flex gap-4 items-center">
-                      <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-white shadow-md">
-                        NR
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm text-on-surface">Nadia R.</h4>
-                        <p className="text-xs text-secondary font-medium mt-0.5">Network Lead Operations</p>
-                        <p className="text-[10px] text-on-surface-variant/60 mt-1">Active operators console</p>
-                      </div>
-                      <a href="mailto:nadia@company.com" className="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-high rounded-lg">
-                        <span className="material-symbols-outlined text-[20px]">mail</span>
-                      </a>
-                    </div>
+                    ))}
+                    {users.length === 0 && (
+                      <div className="text-center py-6 text-on-surface-variant/60 col-span-2">No registered support team members found.</div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1473,8 +1768,19 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Attachment (Screenshots or Files)</label>
+                <input 
+                  type="file" 
+                  onChange={handleFileChange}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
+                />
+                {uploadingFile && <span className="text-[10px] text-primary animate-pulse block">Uploading file to S3...</span>}
+                {formAttachmentKey && <span className="text-[10px] text-green-500 block">File uploaded: {formAttachmentKey}</span>}
+              </div>
+
               <div className="flex gap-3 pt-4 border-t border-outline-variant/20 justify-end">
-                <button type="button" className="border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant text-xs font-semibold py-2 px-4 rounded-lg transition-colors" onClick={() => setIsCreateModalOpen(false)}>Cancel</button>
+                <button type="button" className="border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant text-xs font-semibold py-2 px-4 rounded-lg transition-colors" onClick={() => { setIsCreateModalOpen(false); setFormAttachmentKey(''); }}>Cancel</button>
                 <button type="submit" className="bg-primary-container hover:bg-primary-container/90 text-white text-xs font-semibold py-2 px-4 rounded-lg transition-all">Submit Ticket</button>
               </div>
             </form>
@@ -1536,8 +1842,19 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider block">Attachment (Screenshots or Files)</label>
+                <input 
+                  type="file" 
+                  onChange={handleFileChange}
+                  className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
+                />
+                {uploadingFile && <span className="text-[10px] text-primary animate-pulse block">Uploading file to S3...</span>}
+                {formAttachmentKey && <span className="text-[10px] text-green-500 block">File uploaded: {formAttachmentKey}</span>}
+              </div>
+
               <div className="flex gap-3 pt-4 border-t border-outline-variant/20 justify-end">
-                <button type="button" className="border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant text-xs font-semibold py-2 px-4 rounded-lg transition-colors" onClick={() => setIsEditModalOpen(false)}>Cancel</button>
+                <button type="button" className="border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface-variant text-xs font-semibold py-2 px-4 rounded-lg transition-colors" onClick={() => { setIsEditModalOpen(false); setFormAttachmentKey(''); }}>Cancel</button>
                 <button type="submit" className="bg-primary-container hover:bg-primary-container/90 text-white text-xs font-semibold py-2 px-4 rounded-lg transition-all">Save Changes</button>
               </div>
             </form>

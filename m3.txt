@@ -1,0 +1,5 @@
+now follow m3:
+
+add RDS (mysql) in a private subnet , not publicly acessible, the database password lives in secrets manager, other config lives in parameter store. your task pulls both at runtime using its IAM task role, run the porvided schema migration on deploy, 
+
+done criteria: you create a ticket in the app, restart the continaer, the ticket is still there and there is no password anywhere in your repository

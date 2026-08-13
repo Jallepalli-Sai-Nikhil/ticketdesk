@@ -1,0 +1,17 @@
+{
+  "name": "s3-thumbnail-generator",
+  "version": "1.0.0",
+  "description": "AWS Lambda function to resize S3 uploads to thumbnails",
+  "main": "index.js",
+  "dependencies": {
+    "jimp": "^0.22.10"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-s3": "^3.500.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "author": "",
+  "license": "ISC"
+}

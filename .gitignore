@@ -48,3 +48,12 @@ backend/data/
 # --- AI IDE Scratch Directory ---
 .gemini/
 .agents/
+
+# --- Terraform ---
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# --- Binaries ---
+bin/
