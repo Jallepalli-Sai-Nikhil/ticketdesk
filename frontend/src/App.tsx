@@ -26,13 +26,13 @@ interface Ticket {
   attachmentKey?: string;
 }
 
-interface Comment {
-  id?: number;
-  ticketId?: number;
-  author: string;
-  text: string;
-  createdAt?: string;
-}
+// interface Comment {
+//   id?: number;
+//   ticketId?: number;
+//   author: string;
+//   text: string;
+//   createdAt?: string;
+// }
 
 interface DashboardStats {
   total: number;
@@ -71,15 +71,15 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authRole, setAuthRole] = useState<'ADMIN' | 'EMPLOYEE'>('EMPLOYEE');
   const [authError, setAuthError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'mid' | 'strong' | ''>('');
+  // const [showPassword, setShowPassword] = useState(false);
+  // const [passwordStrength, setPasswordStrength] = useState<'weak' | 'mid' | 'strong' | ''>('');
   const [regFirstName, setRegFirstName] = useState('');
   const [regLastName, setRegLastName] = useState('');
 
   // Core Data States
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
   const [search, setSearch] = useState('');
   const [selectedNavId, setSelectedNavId] = useState<'overview' | 'tickets' | 'reports' | 'team'>('overview');
@@ -197,7 +197,7 @@ export default function App() {
 
   // Fetch Tickets from API
   const fetchTickets = async () => {
-    setLoading(true);
+    // setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/tickets`);
       if (response.ok) {
@@ -217,7 +217,7 @@ export default function App() {
         { id: 118, title: 'Excel crashes on large sheets', description: 'Memory leaks when rendering pivot sheets above 50MB.', status: 'RESOLVED', priority: 'LOW', category: 'SOFTWARE', reportedBy: 'employee', createdAt: '2026-08-09T07:00:00Z', updatedAt: '2026-08-09T09:12:00Z' }
       ]);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
@@ -240,7 +240,7 @@ export default function App() {
       const response = await fetch(`${API_BASE}/tickets/${ticketId}/comments`);
       if (response.ok) {
         const data = await response.json();
-        const normalized = data.map((c: any) => ({
+        const normalized = data.map((c: { author: string; text: string; createdAt?: string }) => ({
           author: c.author,
           text: c.text,
           date: c.createdAt || new Date().toISOString()
@@ -340,25 +340,25 @@ export default function App() {
   };
 
   // Password visibility
-  const toggleVis = () => {
-    setShowPassword(!showPassword);
-  };
+  // const toggleVis = () => {
+  //   setShowPassword(!showPassword);
+  // };
 
   // Password strength check
-  const checkStrength = (val: string) => {
-    if (val.length === 0) {
-      setPasswordStrength('');
-      return;
-    }
-    let score = 0;
-    if (val.length >= 6) score++;
-    if (/[A-Z]/.test(val) && /[0-9]/.test(val)) score++;
-    if (val.length >= 10 && /[^A-Za-z0-9]/.test(val)) score++;
-
-    if (score <= 1) setPasswordStrength('weak');
-    else if (score === 2) setPasswordStrength('mid');
-    else setPasswordStrength('strong');
-  };
+  // const checkStrength = (val: string) => {
+  //   if (val.length === 0) {
+  //     setPasswordStrength('');
+  //     return;
+  //   }
+  //   let score = 0;
+  //   if (val.length >= 6) score++;
+  //   if (/[A-Z]/.test(val) && /[0-9]/.test(val)) score++;
+  //   if (val.length >= 10 && /[^A-Za-z0-9]/.test(val)) score++;
+  // 
+  //   if (score <= 1) setPasswordStrength('weak');
+  //   else if (score === 2) setPasswordStrength('mid');
+  //   else setPasswordStrength('strong');
+  // };
 
   // Create Incident
   const handleCreateTicket = async (e: React.FormEvent) => {
@@ -817,30 +817,30 @@ export default function App() {
   }, [selectedNavId, tickets, inspectedTicket, authorizedTickets, stats]);
 
   // Render Category Helper
-  const getCategoryDetails = (category: Ticket['category']) => {
-    switch (category) {
-      case 'NETWORK':
-        return {
-          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 20v-6M12 14a6 6 0 006-6H6a6 6 0 006 6z"/><circle cx="12" cy="4" r="1.6" fill="currentColor"/></svg>,
-          bgClass: 'bg-net', label: 'Network'
-        };
-      case 'HARDWARE':
-        return {
-          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="4" width="16" height="11" rx="2"/><path d="M9 20h6M12 15v5"/></svg>,
-          bgClass: 'bg-hw', label: 'Hardware'
-        };
-      case 'SECURITY':
-        return {
-          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M9 9.5h6M9 13h4"/></svg>,
-          bgClass: 'bg-acc', label: 'Access'
-        };
-      default:
-        return {
-          icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>,
-          bgClass: 'bg-sw', label: 'Software'
-        };
-    }
-  };
+  // const getCategoryDetails = (category: Ticket['category']) => {
+  //   switch (category) {
+  //     case 'NETWORK':
+  //       return {
+  //         icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 20v-6M12 14a6 6 0 006-6H6a6 6 0 006 6z"/><circle cx="12" cy="4" r="1.6" fill="currentColor"/></svg>,
+  //         bgClass: 'bg-net', label: 'Network'
+  //       };
+  //     case 'HARDWARE':
+  //       return {
+  //         icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="4" width="16" height="11" rx="2"/><path d="M9 20h6M12 15v5"/></svg>,
+  //         bgClass: 'bg-hw', label: 'Hardware'
+  //       };
+  //     case 'SECURITY':
+  //       return {
+  //         icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M9 9.5h6M9 13h4"/></svg>,
+  //         bgClass: 'bg-acc', label: 'Access'
+  //       };
+  //     default:
+  //       return {
+  //         icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>,
+  //         bgClass: 'bg-sw', label: 'Software'
+  //       };
+  //   }
+  // };
 
   // Helper date formatter
   const formatDate = (dateStr?: string) => {
