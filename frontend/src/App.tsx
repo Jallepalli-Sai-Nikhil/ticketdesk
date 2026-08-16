@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { DotLottiePlayer } from '@dotlottie/react-player';
 import './App.css';
 
 declare const Plotly: {
@@ -78,6 +79,7 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState('');
   const [authRole, setAuthRole] = useState<'ADMIN' | 'EMPLOYEE'>('EMPLOYEE');
   const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
   // const [showPassword, setShowPassword] = useState(false);
   // const [passwordStrength, setPasswordStrength] = useState<'weak' | 'mid' | 'strong' | ''>('');
   const [regFirstName, setRegFirstName] = useState('');
@@ -86,7 +88,7 @@ export default function App() {
   // Core Data States
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  // const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [backendStatus, setBackendStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
   const [search, setSearch] = useState('');
   const [selectedNavId, setSelectedNavId] = useState<'overview' | 'tickets' | 'reports' | 'team'>('overview');
@@ -204,7 +206,7 @@ export default function App() {
 
   // Fetch Tickets from API
   const fetchTickets = async () => {
-    // setLoading(true);
+    setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/tickets`);
       if (response.ok) {
@@ -224,7 +226,9 @@ export default function App() {
         { id: 118, title: 'Excel crashes on large sheets', description: 'Memory leaks when rendering pivot sheets above 50MB.', status: 'RESOLVED', priority: 'LOW', category: 'SOFTWARE', reportedBy: 'employee', createdAt: '2026-08-09T07:00:00Z', updatedAt: '2026-08-09T09:12:00Z' }
       ]);
     } finally {
-      // setLoading(false);
+      setTimeout(() => {
+        setLoading(false);
+      }, 600);
     }
   };
 
@@ -292,7 +296,7 @@ export default function App() {
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
-    
+    setAuthLoading(true);
     const body = authMode === 'login' 
       ? { username: authUsername, password: authPassword }
       : { username: authUsername, password: authPassword, role: authRole };
@@ -305,6 +309,9 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
+
+      // Simulate a small transition latency for the premium UX feel
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       if (response.ok) {
         if (authMode === 'register') {
@@ -324,6 +331,8 @@ export default function App() {
         setAuthError(msg || 'Authentication failed. Please verify credentials.');
       }
     } catch (err) {
+      // Simulate fallback latency
+      await new Promise(resolve => setTimeout(resolve, 800));
       // Offline fallback login for demo purposes
       if (authMode === 'login' && authUsername === 'admin' && authPassword === 'admin123') {
         const fallbackUser: User = { username: 'admin', role: 'ADMIN' };
@@ -338,6 +347,8 @@ export default function App() {
       } else {
         setAuthError('Connection refused. Run Java backend or use admin/admin123 fallback credentials.');
       }
+    } finally {
+      setAuthLoading(false);
     }
   };
 
@@ -851,6 +862,26 @@ export default function App() {
 
 
 
+  // 1.5 INITIAL DATA LOADING SCREEN (LOTTIE)
+  if (currentUser && loading && tickets.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-on-background">
+        <div className="flex flex-col items-center space-y-4">
+          <DotLottiePlayer
+            src="/loader.lottie"
+            autoplay
+            loop
+            style={{ width: '160px', height: '160px' }}
+          />
+          <div className="text-center">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-primary animate-pulse">Initializing Nexus Control</h2>
+            <p className="text-xs text-on-surface-variant/70 mt-1">Establishing secure connection to incident gateway...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 1. AUTH SCREEN GATEWAY RENDERER
   if (!currentUser) {
     return (
@@ -959,10 +990,25 @@ export default function App() {
 
             <button 
               type="submit" 
-              className="w-full bg-primary-container hover:bg-primary-container/90 text-white py-2.5 rounded-lg font-semibold text-sm transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center justify-center gap-2 mt-6"
+              disabled={authLoading}
+              className="w-full bg-primary-container hover:bg-primary-container/90 disabled:opacity-60 text-white py-2.5 rounded-lg font-semibold text-sm transition-all shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center justify-center gap-2 mt-6 btn-press hover-lift"
             >
-              {authMode === 'login' ? 'Sign In' : 'Create Account'}
-              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              {authLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <DotLottiePlayer
+                    src="/loader.lottie"
+                    autoplay
+                    loop
+                    style={{ width: '20px', height: '20px' }}
+                  />
+                  <span>Processing...</span>
+                </div>
+              ) : (
+                <>
+                  {authMode === 'login' ? 'Sign In' : 'Create Account'}
+                  <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </>
+              )}
             </button>
           </form>
 
@@ -1002,48 +1048,48 @@ export default function App() {
 
         <div className="flex-1 px-3 space-y-2">
           <button 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'overview' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium nav-item-transition btn-press ${selectedNavId === 'overview' ? 'text-primary bg-primary/15 nav-item-active' : 'text-on-surface-variant hover:bg-surface-container-high/60'}`}
             onClick={() => { setSelectedNavId('overview'); setInspectedTicket(null); }}
           >
-            <span className="material-symbols-outlined text-[20px]">dashboard</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">dashboard</span>
             Dashboard
           </button>
           <button 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'tickets' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium nav-item-transition btn-press ${selectedNavId === 'tickets' ? 'text-primary bg-primary/15 nav-item-active' : 'text-on-surface-variant hover:bg-surface-container-high/60'}`}
             onClick={() => { setSelectedNavId('tickets'); setInspectedTicket(null); }}
           >
-            <span className="material-symbols-outlined text-[20px]">confirmation_number</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">confirmation_number</span>
             Tickets
           </button>
           <button 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'reports' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium nav-item-transition btn-press ${selectedNavId === 'reports' ? 'text-primary bg-primary/15 nav-item-active' : 'text-on-surface-variant hover:bg-surface-container-high/60'}`}
             onClick={() => { setSelectedNavId('reports'); setInspectedTicket(null); }}
           >
-            <span className="material-symbols-outlined text-[20px]">analytics</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">analytics</span>
             Analytics
           </button>
           <button 
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${selectedNavId === 'team' ? 'text-primary bg-primary/10 border-l-4 border-primary' : 'text-on-surface-variant hover:bg-surface-container-high'}`}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium nav-item-transition btn-press ${selectedNavId === 'team' ? 'text-primary bg-primary/15 nav-item-active' : 'text-on-surface-variant hover:bg-surface-container-high/60'}`}
             onClick={() => { setSelectedNavId('team'); setInspectedTicket(null); fetchUsers(); }}
           >
-            <span className="material-symbols-outlined text-[20px]">groups</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">groups</span>
             Employees
           </button>
         </div>
 
         <div className="px-3 mt-auto space-y-2">
           <button 
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high nav-item-transition btn-press"
             onClick={() => setIsSettingsOpen(true)}
           >
-            <span className="material-symbols-outlined text-[20px]">settings</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 hover:rotate-45">settings</span>
             Settings
           </button>
           <button 
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-on-surface-variant hover:bg-surface-container-high nav-item-transition btn-press"
             onClick={handleLogout}
           >
-            <span className="material-symbols-outlined text-[20px]">logout</span>
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 hover:translate-x-1">logout</span>
             Log Out
           </button>
         </div>
@@ -1122,24 +1168,37 @@ export default function App() {
         <main className="flex-1 p-6 md:p-8 pt-24 max-w-[1600px] mx-auto w-full">
           
           {/* Main Title Section */}
-          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-            <div>
-              <h2 className="font-headline-lg-mobile md:font-headline-lg text-2xl md:text-3xl font-bold text-on-surface">
-                {inspectedTicket ? 'Incident Details' :
-                 selectedNavId === 'overview' ? 'Command Center' :
-                 selectedNavId === 'tickets' ? 'Tickets Queue' :
-                 selectedNavId === 'reports' ? 'Performance Reports' :
-                 selectedNavId === 'team' ? 'Our Employees' :
-                 'Dashboard'}
-              </h2>
-              <p className="font-body-sm text-xs text-on-surface-variant mt-1">
-                {inspectedTicket ? `Reviewing Ticket #${inspectedTicket.id}` :
-                 selectedNavId === 'overview' ? 'Live ITSM Metrics & Global Status' :
-                 selectedNavId === 'tickets' ? 'Triage, assign, and manage issues' :
-                 selectedNavId === 'reports' ? 'Interactive analytics visualization' :
-                 selectedNavId === 'team' ? 'Technical operators on-call status' :
-                 workspaceName}
-              </p>
+          <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 animate-fade-in-down">
+            <div className="flex items-center gap-4">
+              <div>
+                <h2 className="font-headline-lg-mobile md:font-headline-lg text-2xl md:text-3xl font-bold text-on-surface flex items-center gap-3">
+                  {inspectedTicket ? 'Incident Details' :
+                   selectedNavId === 'overview' ? 'Command Center' :
+                   selectedNavId === 'tickets' ? 'Tickets Queue' :
+                   selectedNavId === 'reports' ? 'Performance Reports' :
+                   selectedNavId === 'team' ? 'Our Employees' :
+                   'Dashboard'}
+                </h2>
+                <p className="font-body-sm text-xs text-on-surface-variant mt-1">
+                  {inspectedTicket ? `Reviewing Ticket #${inspectedTicket.id}` :
+                   selectedNavId === 'overview' ? 'Live ITSM Metrics & Global Status' :
+                   selectedNavId === 'tickets' ? 'Triage, assign, and manage issues' :
+                   selectedNavId === 'reports' ? 'Interactive analytics visualization' :
+                   selectedNavId === 'team' ? 'Technical operators on-call status' :
+                   workspaceName}
+                </p>
+              </div>
+              {loading && tickets.length > 0 && (
+                <div className="flex items-center gap-1.5 bg-surface-container-high/40 rounded-full py-1.5 px-3 border border-outline-variant/20 animate-scale-in">
+                  <DotLottiePlayer
+                    src="/loader.lottie"
+                    autoplay
+                    loop
+                    style={{ width: '28px', height: '28px' }}
+                  />
+                  <span className="text-[10px] text-primary font-semibold uppercase tracking-wider animate-pulse">Syncing...</span>
+                </div>
+              )}
             </div>
             
             {!inspectedTicket && currentUser.role === 'EMPLOYEE' && (
