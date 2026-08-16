@@ -57,3 +57,6 @@ terraform/.terraform.lock.hcl
 
 # --- Binaries ---
 bin/
+
+# --- Build Static Assets ---
+backend/src/main/resources/static/

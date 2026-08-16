@@ -56,7 +56,7 @@ interface User {
 
 const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? (window.location.port === '5173' || window.location.port === '3000' ? 'http://localhost:8080/api' : '/api')
-  : 'http://ticketdesk-m1-alb-756973487.ap-south-1.elb.amazonaws.com/api';
+  : '/api';
 
 export default function App() {
   // App States

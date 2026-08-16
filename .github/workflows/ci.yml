@@ -48,6 +48,8 @@ jobs:
         npm ci --prefix frontend
         npm run lint --prefix frontend
         npm run build --prefix frontend
+        mkdir -p backend/src/main/resources/static
+        cp -r frontend/dist/* backend/src/main/resources/static/
 
     # 5. Scan for committed secrets
     - name: Scan for secrets
