@@ -58,10 +58,17 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   ? (window.location.port === '5173' || window.location.port === '3000' ? 'http://localhost:8080/api' : '/api')
   : '/api';
 
+// Helper date formatter defined in module scope
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return 'N/A';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
 export default function App() {
   // App States
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('currentUser');
+    const saved = localStorage.getItem('currentUser:v2');
     return saved ? JSON.parse(saved) : null;
   });
   
@@ -84,7 +91,7 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [selectedNavId, setSelectedNavId] = useState<'overview' | 'tickets' | 'reports' | 'team'>('overview');
   const [sidebarExpanded, setSidebarExpanded] = useState<boolean>(() => {
-    return localStorage.getItem('sidebarExpanded') !== 'false';
+    return localStorage.getItem('sidebarExpanded:v2') !== 'false';
   });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -98,34 +105,34 @@ export default function App() {
   
   // Real-life desk states persisted in LocalStorage
   const [ticketComments, setTicketComments] = useState<Record<number, Array<{ author: string; text: string; date: string }>>>(() => {
-    const saved = localStorage.getItem('ticketComments');
+    const saved = localStorage.getItem('ticketComments:v2');
     return saved ? JSON.parse(saved) : {};
   });
 
   const [ticketAssignees, setTicketAssignees] = useState<Record<number, string>>(() => {
-    const saved = localStorage.getItem('ticketAssignees');
+    const saved = localStorage.getItem('ticketAssignees:v2');
     return saved ? JSON.parse(saved) : {};
   });
 
   const [ticketResolutions, setTicketResolutions] = useState<Record<number, string>>(() => {
-    const saved = localStorage.getItem('ticketResolutions');
+    const saved = localStorage.getItem('ticketResolutions:v2');
     return saved ? JSON.parse(saved) : {};
   });
 
   useEffect(() => {
-    localStorage.setItem('ticketComments', JSON.stringify(ticketComments));
+    localStorage.setItem('ticketComments:v2', JSON.stringify(ticketComments));
   }, [ticketComments]);
 
   useEffect(() => {
-    localStorage.setItem('ticketAssignees', JSON.stringify(ticketAssignees));
+    localStorage.setItem('ticketAssignees:v2', JSON.stringify(ticketAssignees));
   }, [ticketAssignees]);
 
   useEffect(() => {
-    localStorage.setItem('ticketResolutions', JSON.stringify(ticketResolutions));
+    localStorage.setItem('ticketResolutions:v2', JSON.stringify(ticketResolutions));
   }, [ticketResolutions]);
 
   useEffect(() => {
-    localStorage.setItem('sidebarExpanded', String(sidebarExpanded));
+    localStorage.setItem('sidebarExpanded:v2', String(sidebarExpanded));
   }, [sidebarExpanded]);
 
 
@@ -193,7 +200,7 @@ export default function App() {
   };
 
   // Settings State
-  const [workspaceName, setWorkspaceName] = useState(() => localStorage.getItem('workspaceName') || 'IT Service Desk');
+  const [workspaceName, setWorkspaceName] = useState(() => localStorage.getItem('workspaceName:v2') || 'IT Service Desk');
 
   // Fetch Tickets from API
   const fetchTickets = async () => {
@@ -310,7 +317,7 @@ export default function App() {
           return;
         }
         const user: User = await response.json();
-        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem('currentUser:v2', JSON.stringify(user));
         setCurrentUser(user);
       } else {
         const msg = await response.text();
@@ -320,12 +327,12 @@ export default function App() {
       // Offline fallback login for demo purposes
       if (authMode === 'login' && authUsername === 'admin' && authPassword === 'admin123') {
         const fallbackUser: User = { username: 'admin', role: 'ADMIN' };
-        localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
+        localStorage.setItem('currentUser:v2', JSON.stringify(fallbackUser));
         setCurrentUser(fallbackUser);
         setBackendStatus('OFFLINE');
       } else if (authMode === 'login' && authUsername === 'employee' && authPassword === 'employee123') {
         const fallbackUser: User = { username: 'employee', role: 'EMPLOYEE' };
-        localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
+        localStorage.setItem('currentUser:v2', JSON.stringify(fallbackUser));
         setCurrentUser(fallbackUser);
         setBackendStatus('OFFLINE');
       } else {
@@ -335,7 +342,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('currentUser:v2');
     setCurrentUser(null);
   };
 
@@ -1067,13 +1074,20 @@ export default function App() {
                 placeholder="Search tickets, assets, users..." 
                 type="text"
                 value={search}
+                aria-label="Search tickets, assets, users"
                 onChange={(e) => { setSearch(e.target.value); setSelectedNavId('tickets'); }}
               />
             </div>
           </div>
 
           <div className="flex items-center gap-4 ml-auto">
-            <div className="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-surface-container-high transition-all" onClick={() => setProfileMenuOpen(!profileMenuOpen)}>
+            <div 
+              role="button" 
+              tabIndex={0} 
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setProfileMenuOpen(!profileMenuOpen); } }}
+              className="flex items-center gap-2 cursor-pointer p-1.5 rounded-lg hover:bg-surface-container-high transition-all" 
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+            >
               <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-xs font-bold text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]">
                 {currentUser.username.substring(0, 2).toUpperCase()}
               </div>
@@ -1197,8 +1211,8 @@ export default function App() {
                       [System Alert] Ticket raised by <span className="font-semibold text-primary">{inspectedTicket.reportedBy}</span> on {formatDate(inspectedTicket.createdAt)}
                     </div>
 
-                    {(ticketComments[inspectedTicket.id!] || []).map((comm, idx) => (
-                      <div key={idx} className={`flex gap-3 text-xs p-3 rounded-lg border ${comm.author === 'system' ? 'bg-surface-container-low/20 border-outline-variant/10' : 'glass-card'}`}>
+                    {(ticketComments[inspectedTicket.id!] || []).map((comm) => (
+                      <div key={`${comm.author}-${comm.date}`} className={`flex gap-3 text-xs p-3 rounded-lg border ${comm.author === 'system' ? 'bg-surface-container-low/20 border-outline-variant/10' : 'glass-card'}`}>
                         {comm.author !== 'system' && (
                           <div className="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center font-bold text-[10px] text-white">
                             {comm.author.substring(0, 2).toUpperCase()}
@@ -1220,6 +1234,7 @@ export default function App() {
                       type="text" 
                       placeholder="Add comment..." 
                       value={newCommentText} 
+                      aria-label="Add comment"
                       onChange={(e) => setNewCommentText(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(inspectedTicket.id!); }}
                       className="flex-1 bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-4 text-xs text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-primary"
@@ -1471,6 +1486,7 @@ export default function App() {
                               type="text" 
                               placeholder="Issue Summary (e.g. VPN down)" 
                               value={formTitle}
+                              aria-label="Issue Summary"
                               onChange={(e) => setFormTitle(e.target.value)}
                               required
                               className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1.5 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
@@ -1478,13 +1494,14 @@ export default function App() {
                             <textarea 
                               placeholder="Describe details..." 
                               value={formDescription}
+                              aria-label="Describe details"
                               onChange={(e) => setFormDescription(e.target.value)}
                               required
                               rows={2}
                               className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1.5 px-3 text-xs text-on-surface focus:outline-none focus:border-primary resize-none font-inherit"
                             />
                             <div className="grid grid-cols-2 gap-2">
-                              <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')} className="bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1 px-2 text-xs text-on-surface">
+                              <select value={formPriority} onChange={(e) => setFormPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')} aria-label="Priority" className="bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-1 px-2 text-xs text-on-surface">
                                 <option value="LOW">Low</option>
                                 <option value="MEDIUM">Medium</option>
                                 <option value="HIGH">High</option>
@@ -1535,7 +1552,14 @@ export default function App() {
                           {authorizedTickets.slice(0, 5).map(t => {
                             const statusColor = t.status === 'OPEN' ? 'text-yellow-500' : t.status === 'IN_PROGRESS' ? 'text-primary' : t.status === 'RESOLVED' ? 'text-green-500' : 'text-zinc-500';
                             return (
-                              <tr key={t.id} onClick={() => setInspectedTicket(t)} className="hover:bg-surface-container-high/40 transition-colors cursor-pointer">
+                              <tr 
+                                key={t.id} 
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setInspectedTicket(t); } }}
+                                onClick={() => setInspectedTicket(t)} 
+                                className="hover:bg-surface-container-high/40 transition-colors cursor-pointer"
+                              >
                                 <td className="p-4 text-primary font-mono font-semibold">INC-#{t.id}</td>
                                 <td className="p-4 font-semibold text-on-surface">{t.title}</td>
                                 <td className="p-4 text-on-surface-variant">{t.category}</td>
@@ -1706,6 +1730,7 @@ export default function App() {
                             <select
                               value={u.role}
                               onChange={(e) => handleUpdateUserRole(u.username, e.target.value as 'ADMIN' | 'EMPLOYEE')}
+                              aria-label="Update user role"
                               className="bg-surface-container-high/40 border border-outline-variant/30 rounded py-1 px-2 text-xs text-on-surface focus:outline-none focus:border-primary"
                             >
                               <option value="EMPLOYEE">Employee</option>
@@ -1905,7 +1930,7 @@ export default function App() {
                   value={workspaceName}
                   onChange={(e) => {
                     setWorkspaceName(e.target.value);
-                    localStorage.setItem('workspaceName', e.target.value);
+                    localStorage.setItem('workspaceName:v2', e.target.value);
                   }}
                   className="w-full bg-surface-container-high/40 border border-outline-variant/30 rounded-lg py-2 px-3 text-xs text-on-surface focus:outline-none focus:border-primary"
                 />
