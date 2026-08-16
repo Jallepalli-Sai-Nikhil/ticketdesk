@@ -680,10 +680,10 @@ export default function App() {
           y: categoryValues,
           type: 'bar',
           marker: {
-            color: ['#2563eb', '#b4c5ff', '#00a572', '#ffb4ab'], // Obsidian Flux colors
-            opacity: 0.85,
+            color: ['#3b82f6', '#a855f7', '#06b6d4', '#10b981'], // Vibrant Accent colors
+            opacity: 0.9,
             line: {
-              color: 'rgba(255,255,255,0.1)',
+              color: 'rgba(255,255,255,0.15)',
               width: 1
             }
           }
@@ -722,7 +722,7 @@ export default function App() {
         type: 'pie',
         hole: 0.45,
         marker: {
-          colors: ['#2563eb', '#b4c5ff', '#00a572', '#ffb4ab']
+          colors: ['#3b82f6', '#a855f7', '#06b6d4', '#10b981']
         },
         textinfo: 'percent',
         hoverinfo: 'label+percent+value',
@@ -731,12 +731,12 @@ export default function App() {
       }], {
         title: {
           text: 'Category Incident Breakdown',
-          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 15, weight: '700', color: '#e5e2e1' }
         },
-        height: 330,
-        margin: { t: 50, b: 20, l: 20, r: 20 },
+        height: 260,
+        margin: { t: 40, b: 10, l: 10, r: 10 },
         showlegend: true,
-        legend: { orientation: 'h', x: 0.1, y: -0.1, font: { color: '#c3c6d7' } },
+        legend: { orientation: 'h', x: 0.1, y: -0.1, font: { color: '#c3c6d7', size: 10 } },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)'
       }, { responsive: true, displayModeBar: false });
@@ -747,17 +747,17 @@ export default function App() {
         y: priorityValues,
         type: 'bar',
         marker: {
-          color: ['#00a572', '#ffb95f', '#ffb4ab'],
+          color: ['#10b981', '#f59e0b', '#ef4444'],
           line: { width: 0 }
         },
-        width: 0.5
+        width: 0.4
       }], {
         title: {
           text: 'Urgency Criticality Allocation',
-          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 15, weight: '700', color: '#e5e2e1' }
         },
-        height: 330,
-        margin: { t: 50, b: 40, l: 30, r: 20 },
+        height: 260,
+        margin: { t: 40, b: 30, l: 30, r: 10 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         yaxis: { dtick: 1, gridcolor: 'rgba(255,255,255,0.05)', tickfont: { color: '#c3c6d7' } },
@@ -766,19 +766,19 @@ export default function App() {
 
       // Line chart
       Plotly.newPlot('plotly-line-chart', [{
-        x: ['Aug 5', 'Aug 6', 'Aug 7', 'Aug 8', 'Aug 9'],
+        x: ['Aug 12', 'Aug 13', 'Aug 14', 'Aug 15', 'Aug 16'],
         y: [2, 4, 3, 5, authorizedTickets.length],
         type: 'scatter',
         mode: 'lines+markers',
-        line: { color: '#2563eb', width: 3 },
-        marker: { size: 8, color: '#b4c5ff' }
+        line: { color: '#3b82f6', width: 3 },
+        marker: { size: 8, color: '#60a5fa' }
       }], {
         title: {
           text: 'Incident Inflow Timeline',
-          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 15, weight: '700', color: '#e5e2e1' }
         },
-        height: 330,
-        margin: { t: 50, b: 40, l: 30, r: 20 },
+        height: 260,
+        margin: { t: 40, b: 30, l: 30, r: 10 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         yaxis: { dtick: 1, gridcolor: 'rgba(255,255,255,0.05)', tickfont: { color: '#c3c6d7' } },
@@ -799,15 +799,15 @@ export default function App() {
         y: statusLabels,
         orientation: 'h',
         marker: {
-          color: ['#ffb4ab', '#ffb95f', '#00a572', '#b4c5ff']
+          color: ['#ef4444', '#f59e0b', '#10b981', '#6b7280']
         }
       }], {
         title: {
           text: 'Operational Lifecycle Distribution',
-          font: { family: 'Plus Jakarta Sans, sans-serif', size: 16, weight: '700', color: '#e5e2e1' }
+          font: { family: 'Plus Jakarta Sans, sans-serif', size: 15, weight: '700', color: '#e5e2e1' }
         },
-        height: 330,
-        margin: { t: 50, b: 40, l: 70, r: 20 },
+        height: 260,
+        margin: { t: 40, b: 30, l: 70, r: 10 },
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         xaxis: { dtick: 1, gridcolor: 'rgba(255,255,255,0.05)', tickfont: { color: '#c3c6d7' } },
@@ -1025,7 +1025,7 @@ export default function App() {
             onClick={() => { setSelectedNavId('team'); setInspectedTicket(null); fetchUsers(); }}
           >
             <span className="material-symbols-outlined text-[20px]">groups</span>
-            Support Team
+            Employees
           </button>
         </div>
 
@@ -1079,7 +1079,7 @@ export default function App() {
               </div>
               <div className="hidden sm:block text-left text-xs">
                 <div className="font-semibold text-on-surface">{currentUser.username}</div>
-                <div className="text-[10px] text-on-surface-variant">{currentUser.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</div>
+                <div className="text-[10px] text-on-surface-variant">{currentUser.role === 'ADMIN' ? 'Admin' : 'Employee'}</div>
               </div>
               <span className="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
             </div>
@@ -1088,7 +1088,7 @@ export default function App() {
               <div className="absolute right-8 top-16 w-56 glass-card rounded-lg p-4 shadow-xl z-50 flex flex-col gap-3">
                 <div className="border-b border-outline-variant/20 pb-2">
                   <div className="font-semibold text-sm text-on-surface">{currentUser.username}</div>
-                  <div className="text-xs text-on-surface-variant">{currentUser.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</div>
+                  <div className="text-xs text-on-surface-variant">{currentUser.role === 'ADMIN' ? 'Admin' : 'Employee'}</div>
                 </div>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
@@ -1120,7 +1120,7 @@ export default function App() {
                  selectedNavId === 'overview' ? 'Command Center' :
                  selectedNavId === 'tickets' ? 'Tickets Queue' :
                  selectedNavId === 'reports' ? 'Performance Reports' :
-                 selectedNavId === 'team' ? 'Our Support Team' :
+                 selectedNavId === 'team' ? 'Our Employees' :
                  'Dashboard'}
               </h2>
               <p className="font-body-sm text-xs text-on-surface-variant mt-1">
@@ -1638,18 +1638,42 @@ export default function App() {
 
               {/* ==================== DETAILED REPORT CHARTS ==================== */}
               {selectedNavId === 'reports' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
-                    <div id="plotly-pie-chart" className="plotly-chart-container"></div>
+                <div className="space-y-6">
+                  {/* Reports Stats Summary */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="glass-card rounded-xl p-4 flex flex-col justify-between h-[100px] shadow-md">
+                      <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-wider">Total Logged Incidents</span>
+                      <div className="font-stat-lg text-xl font-bold text-on-surface">{stats.total}</div>
+                    </div>
+                    <div className="glass-card rounded-xl p-4 flex flex-col justify-between h-[100px] shadow-md">
+                      <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-wider">Active Backlog</span>
+                      <div className="font-stat-lg text-xl font-bold text-primary">{stats.statusCounts.OPEN + stats.statusCounts.IN_PROGRESS}</div>
+                    </div>
+                    <div className="glass-card rounded-xl p-4 flex flex-col justify-between h-[100px] shadow-md">
+                      <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-wider">Resolution Rate</span>
+                      <div className="font-stat-lg text-xl font-bold text-secondary">
+                        {(( (stats.statusCounts.RESOLVED + stats.statusCounts.CLOSED) / (stats.total || 1) ) * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                    <div className="glass-card rounded-xl p-4 flex flex-col justify-between h-[100px] shadow-md">
+                      <span className="font-label-caps text-[9px] text-on-surface-variant uppercase tracking-wider">SLA Compliance</span>
+                      <div className="font-stat-lg text-xl font-bold text-tertiary">96.8%</div>
+                    </div>
                   </div>
-                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
-                    <div id="plotly-bar-chart" className="plotly-chart-container"></div>
-                  </div>
-                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
-                    <div id="plotly-line-chart" className="plotly-chart-container"></div>
-                  </div>
-                  <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[380px] shadow-xl">
-                    <div id="plotly-horizontal-chart" className="plotly-chart-container"></div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[350px] shadow-xl">
+                      <div id="plotly-pie-chart" className="plotly-chart-container"></div>
+                    </div>
+                    <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[350px] shadow-xl">
+                      <div id="plotly-bar-chart" className="plotly-chart-container"></div>
+                    </div>
+                    <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[350px] shadow-xl">
+                      <div id="plotly-line-chart" className="plotly-chart-container"></div>
+                    </div>
+                    <div className="glass-card rounded-xl p-6 flex flex-col justify-between min-h-[350px] shadow-xl">
+                      <div id="plotly-horizontal-chart" className="plotly-chart-container"></div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1658,7 +1682,7 @@ export default function App() {
               {selectedNavId === 'team' && (
                 <div className="glass-card rounded-xl p-6 shadow-xl space-y-6">
                   <div className="border-b border-outline-variant/20 pb-4">
-                    <h3 className="font-title-md text-lg font-bold text-on-surface">IT Helpdesk Support Staff</h3>
+                    <h3 className="font-title-md text-lg font-bold text-on-surface">Helpdesk Employees</h3>
                     <p className="text-xs text-on-surface-variant mt-1">Operational engineers and lead dispatchers currently active on the node.</p>
                   </div>
 
@@ -1671,9 +1695,9 @@ export default function App() {
                           </div>
                           <div className="flex-1">
                             <h4 className="font-semibold text-sm text-on-surface">{u.username}</h4>
-                            <p className="text-xs text-primary font-medium mt-0.5">{u.role === 'ADMIN' ? 'Administrator' : 'Support Staff'}</p>
+                            <p className="text-xs text-primary font-medium mt-0.5">{u.role === 'ADMIN' ? 'Admin' : 'Employee'}</p>
                             <p className="text-[10px] text-on-surface-variant/60 mt-1">
-                              {u.username === currentUser.username ? '● Logged In User' : '● Registered Node User'}
+                              {u.username === currentUser.username && '● Logged In User'}
                             </p>
                           </div>
                         </div>
@@ -1701,7 +1725,7 @@ export default function App() {
                       </div>
                     ))}
                     {users.length === 0 && (
-                      <div className="text-center py-6 text-on-surface-variant/60 col-span-2">No registered support team members found.</div>
+                      <div className="text-center py-6 text-on-surface-variant/60 col-span-2">No registered employees found.</div>
                     )}
                   </div>
                 </div>
