@@ -849,12 +849,7 @@ export default function App() {
   //   }
   // };
 
-  // Helper date formatter
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  };
+
 
   // 1. AUTH SCREEN GATEWAY RENDERER
   if (!currentUser) {
