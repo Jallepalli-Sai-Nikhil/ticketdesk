@@ -98,6 +98,16 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   
+  const [viewMode, setViewMode] = useState<'landing' | 'app'>(() => {
+    const saved = localStorage.getItem('viewMode');
+    return saved === 'app' && currentUser ? 'app' : 'landing';
+  });
+
+  const [latency, setLatency] = useState<number | null>(null);
+  const [dbStatus, setDbStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
+  const [totalIncidentsCount, setTotalIncidentsCount] = useState<number>(0);
+  const [selectedAwsComponent, setSelectedAwsComponent] = useState<string | null>(null);
+  
   // Auth Gateway states
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [authUsername, setAuthUsername] = useState('');
@@ -291,6 +301,46 @@ export default function App() {
     }
   };
 
+  // Periodic system telemetry polling
+  useEffect(() => {
+    const runSystemMetricsCheck = async () => {
+      const startTime = performance.now();
+      try {
+        const response = await fetch(`${API_BASE.replace('/api', '')}/health`);
+        const endTime = performance.now();
+        if (response.ok) {
+          setLatency(Math.round(endTime - startTime));
+          setBackendStatus('ONLINE');
+        } else {
+          setLatency(null);
+          setBackendStatus('OFFLINE');
+        }
+      } catch (err) {
+        setLatency(null);
+        setBackendStatus('OFFLINE');
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/tickets/dashboard`);
+        if (response.ok) {
+          const stats = await response.json();
+          if (stats && typeof stats.total === 'number') {
+            setTotalIncidentsCount(stats.total);
+          }
+          setDbStatus('ONLINE');
+        } else {
+          setDbStatus('OFFLINE');
+        }
+      } catch (err) {
+        setDbStatus('OFFLINE');
+      }
+    };
+
+    runSystemMetricsCheck();
+    const metricsInterval = setInterval(runSystemMetricsCheck, 8000);
+    return () => clearInterval(metricsInterval);
+  }, []);
+
   // Load ticket comments dynamically when inspected ticket changes
   useEffect(() => {
     if (inspectedTicket && inspectedTicket.id) {
@@ -350,7 +400,9 @@ export default function App() {
         }
         const user: User = await response.json();
         localStorage.setItem('currentUser:v2', JSON.stringify(user));
+        localStorage.setItem('viewMode', 'app');
         setCurrentUser(user);
+        setViewMode('app');
       } else {
         const msg = await response.text();
         setAuthError(msg || 'Authentication failed. Please verify credentials.');
@@ -362,12 +414,16 @@ export default function App() {
       if (authMode === 'login' && authUsername === 'admin' && authPassword === 'admin123') {
         const fallbackUser: User = { username: 'admin', role: 'ADMIN' };
         localStorage.setItem('currentUser:v2', JSON.stringify(fallbackUser));
+        localStorage.setItem('viewMode', 'app');
         setCurrentUser(fallbackUser);
+        setViewMode('app');
         setBackendStatus('OFFLINE');
       } else if (authMode === 'login' && authUsername === 'employee' && authPassword === 'employee123') {
         const fallbackUser: User = { username: 'employee', role: 'EMPLOYEE' };
         localStorage.setItem('currentUser:v2', JSON.stringify(fallbackUser));
+        localStorage.setItem('viewMode', 'app');
         setCurrentUser(fallbackUser);
+        setViewMode('app');
         setBackendStatus('OFFLINE');
       } else {
         setAuthError('Connection refused. Run Java backend or use admin/admin123 fallback credentials.');
@@ -379,7 +435,9 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser:v2');
+    localStorage.removeItem('viewMode');
     setCurrentUser(null);
+    setViewMode('landing');
   };
 
   // Password visibility
@@ -887,6 +945,467 @@ export default function App() {
 
 
 
+  const renderLandingPage = () => {
+    // Detail data for AWS Components
+    const awsDetails: Record<string, { title: string; subtitle: string; desc: string; arn?: string; consoleLink: string; consoleSteps: string[] }> = {
+      alb: {
+        title: "Application Load Balancer (ALB)",
+        subtitle: "Layer 7 Traffic Gateway (ticketdesk-m1-alb)",
+        desc: "Operating at Layer 7 (Application Layer) of the OSI model, this ALB manages client requests. It enables path-based routing rules, directing all API paths (/api/*) to the containerized ECS backend, and all static resource routes (/) to the built-in frontend SPA, preventing cross-origin CORS headers complications.",
+        arn: "arn:aws:elasticloadbalancing:ap-south-1:123456789012:loadbalancer/app/ticketdesk-m1-alb/50dc6c495c0c9188",
+        consoleLink: "https://ap-south-1.console.aws.amazon.com/ec2/v2/home?region=ap-south-1#LoadBalancers:",
+        consoleSteps: [
+          "Open the EC2 Console in region ap-south-1.",
+          "In the left navigation menu, scroll down to Load Balancing and select Load Balancers.",
+          "Find ticketdesk-m1-alb and check the Details pane to locate its DNS URL."
+        ]
+      },
+      ecs: {
+        title: "ECS Fargate Compute Engine",
+        subtitle: "Serverless Container Host (ticketdesk-m1-cluster)",
+        desc: "A serverless, high-efficiency compute platform that runs the spring boot docker image container. AWS automatically manages the underlying virtual machines, scheduling resources at the Task definition level dynamically. We expose port 8080 mapping internally.",
+        arn: "arn:aws:ecs:ap-south-1:123456789012:cluster/ticketdesk-m1-cluster",
+        consoleLink: "https://ap-south-1.console.aws.amazon.com/ecs/v2/home?region=ap-south-1#clusters",
+        consoleSteps: [
+          "Open the ECS Cluster Console.",
+          "Select ticketdesk-m1-cluster to see active service tasks.",
+          "Under Services, find ticketdesk-m1-service. Check running count and health statuses."
+        ]
+      },
+      rds: {
+        title: "RDS Managed MySQL DB",
+        subtitle: "Isolated Storage (ticketdesk-db)",
+        desc: "An AWS RDS instance running MySQL 8.0. Set inside isolated private subnets of our VPC to guarantee absolute protection from direct public connection attempts. Only the ECS containers in the security group are permitted database connection handshakes.",
+        arn: "arn:aws:rds:ap-south-1:123456789012:db:ticketdesk-db",
+        consoleLink: "https://ap-south-1.console.aws.amazon.com/rds/home?region=ap-south-1#databases:",
+        consoleSteps: [
+          "Open the RDS Console.",
+          "Navigate to Databases and choose ticketdesk-db.",
+          "Look up Endpoint under Connectivity & Security tab to retrieve the MySQL URL."
+        ]
+      },
+      s3: {
+        title: "S3 Object Store & Website",
+        subtitle: "Media Bucket & Assets host (ticketdesk-uploads / ticketdesk-frontend)",
+        desc: "Durable storage buckets. ticketdesk-uploads uses CORS rule setups to allow pre-signed uploads straight from user browsers. ticketdesk-frontend-xxxxxxxx is set up as a static website mirror, serving static compiled files.",
+        arn: "arn:aws:s3:::ticketdesk-uploads-756973487",
+        consoleLink: "https://s3.console.aws.amazon.com/s3/home?region=ap-south-1",
+        consoleSteps: [
+          "Open the Amazon S3 Console.",
+          "Locate ticketdesk-uploads-xxxxxxxx bucket.",
+          "Go to Permissions tab to inspect CORS rule JSON blocks."
+        ]
+      },
+      terraform: {
+        title: "Infrastructure as Code",
+        subtitle: "HashiCorp Terraform Deployment Orchestration",
+        desc: "The cloud platform resources are declaratively defined inside our Terraform codebase (/terraform). It establishes VPC subnets, routing rules, network gateways, ECS task configurations, and target groups dynamically in a standardized reproducible layout.",
+        consoleLink: "https://github.com/features/actions",
+        consoleSteps: [
+          "Run 'terraform plan' locally inside /terraform folder to audit structural diffs.",
+          "Changes are pushed to master/main, triggering GitHub actions for compile verification, lint audits, and automated service deployments."
+        ]
+      }
+    };
+
+    const details = selectedAwsComponent ? awsDetails[selectedAwsComponent] : null;
+
+    return (
+      <div className="min-h-screen bg-[#131313] text-on-background font-body-md relative overflow-x-hidden">
+        
+        {/* Glow Gradients */}
+        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-secondary/5 rounded-full blur-[150px] pointer-events-none"></div>
+        
+        {/* Navigation Bar */}
+        <header className="fixed top-0 left-0 right-0 h-16 border-b border-outline-variant/15 bg-background/70 backdrop-blur-xl z-[999] flex items-center justify-between px-6 md:px-12">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-primary-container flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+              <span className="material-symbols-outlined text-white text-xl">dns</span>
+            </div>
+            <div>
+              <span className="font-title-md font-bold text-base text-primary tracking-tight">Nexus Control</span>
+              <span className="text-[10px] text-on-surface-variant/70 ml-2 border border-outline-variant/20 px-1.5 py-0.5 rounded-full">v2.1</span>
+            </div>
+          </div>
+          <nav className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">Features</a>
+            <a href="#infrastructure" className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">Architecture</a>
+            <a href="#telemetry" className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">Telemetry</a>
+          </nav>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => {
+                localStorage.setItem('viewMode', 'app');
+                setViewMode('app');
+              }}
+              className="bg-primary-container hover:bg-primary-container/90 text-white font-semibold text-xs py-2 px-5 rounded-lg shadow-[0_4px_12px_rgba(37,99,235,0.3)] transition-all flex items-center gap-2"
+            >
+              <span>{currentUser ? 'Console Dashboard' : 'Launch Console'}</span>
+              <span className="material-symbols-outlined text-xs">arrow_forward</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="pt-32 pb-16 px-6 max-w-6xl mx-auto flex flex-col items-center text-center">
+          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/25 rounded-full px-4 py-1 mb-6 animate-fade-in-down">
+            <span className="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_8px_#4edea3]"></span>
+            <span className="text-xs font-semibold text-primary tracking-wide uppercase">Nexus Live Telemetry Active</span>
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight max-w-4xl font-display-lg animate-fade-in-up">
+            Next-Gen Incident & <span className="text-primary bg-clip-text">IT Service Management</span>
+          </h1>
+          
+          <p className="text-base md:text-lg text-on-surface-variant/80 max-w-2xl mb-10 leading-relaxed font-light animate-fade-in-up delay-75">
+            Automate incident triage, resolve workspace bottlenecks in real-time, and orchestrate serverless container infrastructures with direct AWS system sync.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-xs sm:max-w-none animate-fade-in-up delay-100">
+            <button 
+              onClick={() => {
+                localStorage.setItem('viewMode', 'app');
+                setViewMode('app');
+              }}
+              className="w-full sm:w-auto bg-primary-container hover:bg-primary-container/90 text-white font-semibold text-sm py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-primary-container/25"
+            >
+              <span>{currentUser ? 'Go to Console' : 'Access System Console'}</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+            <a 
+              href="#infrastructure"
+              className="w-full sm:w-auto border border-outline-variant/30 hover:bg-surface-container-high/20 text-on-surface font-semibold text-sm py-3 px-8 rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <span>Explore Infrastructure</span>
+              <span className="material-symbols-outlined text-sm">explore</span>
+            </a>
+          </div>
+        </section>
+
+        {/* Telemetry Status HUD */}
+        <section id="telemetry" className="py-8 px-6 max-w-6xl mx-auto scroll-mt-20">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            
+            {/* Metric 1 */}
+            <div className="glass-card rounded-xl p-5 border border-outline-variant/15 flex flex-col justify-between">
+              <span className="text-xs text-on-surface-variant/60 uppercase tracking-wider font-semibold">Incident Gateway</span>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className={`text-2xl font-bold font-title-md ${backendStatus === 'ONLINE' ? 'text-secondary' : 'text-error'}`}>
+                  {backendStatus}
+                </span>
+              </div>
+              <span className="text-[10px] text-on-surface-variant/50 mt-1 block">Live API Service Endpoint</span>
+            </div>
+
+            {/* Metric 2 */}
+            <div className="glass-card rounded-xl p-5 border border-outline-variant/15 flex flex-col justify-between">
+              <span className="text-xs text-on-surface-variant/60 uppercase tracking-wider font-semibold">Connection Latency</span>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-2xl font-bold font-title-md text-white">
+                  {latency !== null ? `${latency}ms` : '--'}
+                </span>
+                {latency !== null && <span className="text-[10px] text-secondary">Optimal</span>}
+              </div>
+              <span className="text-[10px] text-on-surface-variant/50 mt-1 block">Endpoint response duration</span>
+            </div>
+
+            {/* Metric 3 */}
+            <div className="glass-card rounded-xl p-5 border border-outline-variant/15 flex flex-col justify-between">
+              <span className="text-xs text-on-surface-variant/60 uppercase tracking-wider font-semibold">Incident DB Node</span>
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className={`text-2xl font-bold font-title-md ${dbStatus === 'ONLINE' ? 'text-secondary' : 'text-error'}`}>
+                  {dbStatus}
+                </span>
+              </div>
+              <span className="text-[10px] text-on-surface-variant/50 mt-1 block">AWS RDS MySQL Store</span>
+            </div>
+
+            {/* Metric 4 */}
+            <div className="glass-card rounded-xl p-5 border border-outline-variant/15 flex flex-col justify-between">
+              <span className="text-xs text-on-surface-variant/60 uppercase tracking-wider font-semibold">Total Incidents</span>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-2xl font-bold font-title-md text-white">{totalIncidentsCount}</span>
+                <span className="text-[10px] text-on-surface-variant/60">records</span>
+              </div>
+              <span className="text-[10px] text-on-surface-variant/50 mt-1 block">Synced with AWS RDS</span>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Live Infrastructure Map Section */}
+        <section id="infrastructure" className="py-16 px-6 max-w-6xl mx-auto scroll-mt-20">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-white font-title-md mb-3">Live Deployment Sync Viewer</h2>
+            <p className="text-sm text-on-surface-variant/80 max-w-xl mx-auto">
+              Real-time synchronization with active AWS cloud instances. Click any infrastructure node below to audit configurations and AWS Console pathways.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            
+            {/* Interactive Grid Map */}
+            <div className="lg:col-span-2 glass-card rounded-2xl p-6 border border-outline-variant/20 relative min-h-[400px] flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-0 right-0 text-[10px] text-on-surface-variant/40 bg-surface-container-high/40 border-l border-b border-outline-variant/20 px-3 py-1 font-mono uppercase rounded-bl-lg">
+                Interactive Map
+              </div>
+              
+              <div className="flex flex-col gap-6 py-6 relative z-10">
+                {/* Node 1: Client */}
+                <div 
+                  onClick={() => setSelectedAwsComponent(selectedAwsComponent === 's3' ? null : 's3')}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedAwsComponent === 's3' ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(180,197,255,0.15)]' : 'bg-surface-container-low/55 border-outline-variant/25 hover:border-outline-variant'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary text-xl">language</span>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Client SPA & Asset Mirror</h4>
+                      <p className="text-xs text-on-surface-variant/70 font-mono">S3 Website Mirror / Browser</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_6px_#4edea3]"></span>
+                    <span className="text-[10px] text-on-surface-variant/60 font-mono">ONLINE</span>
+                  </div>
+                </div>
+
+                {/* Arrow Connector */}
+                <div className="h-4 flex justify-center items-center">
+                  <span className="material-symbols-outlined text-outline-variant/60 text-lg animate-bounce">arrow_downward</span>
+                </div>
+
+                {/* Node 2: ALB */}
+                <div 
+                  onClick={() => setSelectedAwsComponent(selectedAwsComponent === 'alb' ? null : 'alb')}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedAwsComponent === 'alb' ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(180,197,255,0.15)]' : 'bg-surface-container-low/55 border-outline-variant/25 hover:border-outline-variant'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-tertiary text-xl">alt_route</span>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">Application Load Balancer</h4>
+                      <p className="text-xs text-on-surface-variant/70 font-mono">ticketdesk-m1-alb</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${backendStatus === 'ONLINE' ? 'bg-secondary animate-pulse' : 'bg-error'} shadow-[0_0_6px_currentColor]`}></span>
+                    <span className="text-[10px] text-on-surface-variant/60 font-mono">
+                      {backendStatus === 'ONLINE' ? 'ACTIVE' : 'DEGRADED'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Arrow Connector */}
+                <div className="h-4 flex justify-center items-center">
+                  <span className="material-symbols-outlined text-outline-variant/60 text-lg animate-bounce">arrow_downward</span>
+                </div>
+
+                {/* Node 3: ECS Backend */}
+                <div 
+                  onClick={() => setSelectedAwsComponent(selectedAwsComponent === 'ecs' ? null : 'ecs')}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedAwsComponent === 'ecs' ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(180,197,255,0.15)]' : 'bg-surface-container-low/55 border-outline-variant/25 hover:border-outline-variant'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-primary-container text-xl">widgets</span>
+                    <div>
+                      <h4 className="text-sm font-semibold text-white">AWS ECS Fargate Container</h4>
+                      <p className="text-xs text-on-surface-variant/70 font-mono">Spring Boot Backend App</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${backendStatus === 'ONLINE' ? 'bg-secondary animate-pulse' : 'bg-error'} shadow-[0_0_6px_currentColor]`}></span>
+                    <span className="text-[10px] text-on-surface-variant/60 font-mono">
+                      {backendStatus === 'ONLINE' ? 'RUNNING' : 'STOPPED'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Split Arrow Connectors */}
+                <div className="grid grid-cols-2 gap-4 h-6">
+                  <div className="flex justify-center items-center border-r border-dashed border-outline-variant/50">
+                    <span className="material-symbols-outlined text-outline-variant/60 text-base">arrow_downward</span>
+                  </div>
+                  <div className="flex justify-center items-center">
+                    <span className="material-symbols-outlined text-outline-variant/60 text-base">arrow_downward</span>
+                  </div>
+                </div>
+
+                {/* Node 4 & 5: RDS DB & S3 uploads */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Database */}
+                  <div 
+                    onClick={() => setSelectedAwsComponent(selectedAwsComponent === 'rds' ? null : 'rds')}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedAwsComponent === 'rds' ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(180,197,255,0.15)]' : 'bg-surface-container-low/55 border-outline-variant/25 hover:border-outline-variant'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-secondary text-xl">database</span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-white">RDS Managed DB</h4>
+                        <p className="text-xs text-on-surface-variant/70 font-mono">MySQL RDS Instance</p>
+                      </div>
+                    </div>
+                    <span className={`w-2 h-2 rounded-full ${dbStatus === 'ONLINE' ? 'bg-secondary animate-pulse' : 'bg-error'} shadow-[0_0_6px_currentColor]`}></span>
+                  </div>
+
+                  {/* S3 Storage */}
+                  <div 
+                    onClick={() => setSelectedAwsComponent(selectedAwsComponent === 's3' ? null : 's3')}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all cursor-pointer ${selectedAwsComponent === 's3' ? 'bg-primary/10 border-primary shadow-[0_0_15px_rgba(180,197,255,0.15)]' : 'bg-surface-container-low/55 border-outline-variant/25 hover:border-outline-variant'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-tertiary text-xl">folder_zip</span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-white">Amazon S3 Storage</h4>
+                        <p className="text-xs text-on-surface-variant/70 font-mono">ticketdesk-uploads</p>
+                      </div>
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-secondary animate-pulse shadow-[0_0_6px_#4edea3]"></span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Bottom Orchestration Row */}
+              <div className="border-t border-outline-variant/15 pt-4 mt-6 flex flex-wrap justify-between items-center text-xs text-on-surface-variant/60 gap-3">
+                <div 
+                  onClick={() => setSelectedAwsComponent('terraform')}
+                  className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">settings_input_component</span>
+                  <span>Provisioner: <b>Terraform v1.6.0</b></span>
+                </div>
+                <span>AWS Region: <b>ap-south-1 (Mumbai)</b></span>
+              </div>
+            </div>
+
+            {/* Component Detail Drawer Card */}
+            <div className="glass-card rounded-2xl p-6 border border-outline-variant/20 min-h-[400px] flex flex-col justify-between">
+              {details ? (
+                <div className="space-y-6">
+                  <div>
+                    <span className="text-[10px] text-primary font-mono font-semibold uppercase tracking-wider block mb-1">Component Audit</span>
+                    <h3 className="text-xl font-bold text-white font-title-md">{details.title}</h3>
+                    <p className="text-xs text-on-surface-variant/70 font-mono mt-0.5">{details.subtitle}</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <h5 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">Description</h5>
+                      <p className="text-xs text-on-surface-variant/90 leading-relaxed font-light">{details.desc}</p>
+                    </div>
+
+                    {details.arn && (
+                      <div>
+                        <h5 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">AWS Resource ARN</h5>
+                        <p className="text-[10px] text-primary/80 font-mono break-all bg-surface-container-high/40 p-2 rounded border border-outline-variant/10">
+                          {details.arn}
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <h5 className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">AWS Console Access Pathway</h5>
+                      <ol className="list-decimal list-inside text-xs text-on-surface-variant/80 space-y-1.5 font-light">
+                        {details.consoleSteps.map((step, idx) => (
+                          <li key={idx} className="leading-normal">{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-outline-variant/15">
+                    <a 
+                      href={details.consoleLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-white transition-colors"
+                    >
+                      <span>Launch AWS Console</span>
+                      <span className="material-symbols-outlined text-xs">open_in_new</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center py-12 text-on-surface-variant/50">
+                  <span className="material-symbols-outlined text-4xl mb-3">info</span>
+                  <p className="text-xs">No AWS component selected.<br />Click any node on the diagram to audit.</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </section>
+
+        {/* Features Showcase */}
+        <section id="features" className="py-16 px-6 max-w-6xl mx-auto scroll-mt-20 border-t border-outline-variant/15">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold text-white font-title-md mb-3">Core Platform Modules</h2>
+            <p className="text-sm text-on-surface-variant/80 max-w-xl mx-auto">
+              Everything required to orchestrate incidents, support workers, and drive resolutions efficiently.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Feature 1 */}
+            <div className="glass-card rounded-xl p-6 border border-outline-variant/15 hover-lift">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
+                <span className="material-symbols-outlined text-primary text-xl">rule</span>
+              </div>
+              <h3 className="text-base font-semibold text-white font-title-md mb-2">Queue Automation</h3>
+              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-light">
+                Auto-triage incidents dynamically. Assign priorities (LOW, MEDIUM, HIGH) and route to specific engineering tags instantly.
+              </p>
+            </div>
+
+            {/* Feature 2 */}
+            <div className="glass-card rounded-xl p-6 border border-outline-variant/15 hover-lift">
+              <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center mb-4 border border-secondary/20">
+                <span className="material-symbols-outlined text-secondary text-xl">schedule</span>
+              </div>
+              <h3 className="text-base font-semibold text-white font-title-md mb-2">SLA Live HUD</h3>
+              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-light">
+                Monitor live incident countdown tickers. Audit resolution states with timestamps and detailed root-cause notes.
+              </p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="glass-card rounded-xl p-6 border border-outline-variant/15 hover-lift">
+              <div className="w-10 h-10 rounded-lg bg-tertiary/10 flex items-center justify-center mb-4 border border-tertiary/20">
+                <span className="material-symbols-outlined text-tertiary text-xl">cloud_sync</span>
+              </div>
+              <h3 className="text-base font-semibold text-white font-title-md mb-2">Multi-Tenant Roles</h3>
+              <p className="text-xs text-on-surface-variant/80 leading-relaxed font-light">
+                Differentiated views for administrators and general employees. Manage active credentials and workspace configurations seamlessly.
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="py-12 border-t border-outline-variant/10 bg-surface-container-lowest/30 px-6 text-center text-xs text-on-surface-variant/50">
+          <p>© {new Date().getFullYear()} Nexus Control Enterprise ITSM. Provisioned via Terraform. All rights reserved.</p>
+          <div className="flex justify-center gap-6 mt-4">
+            <a href="#features" className="hover:text-white transition-colors">Features</a>
+            <a href="#infrastructure" className="hover:text-white transition-colors">Infrastructure</a>
+            <span className="text-on-surface-variant/20">|</span>
+            <span className="text-secondary flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>
+              All Systems Operational
+            </span>
+          </div>
+        </footer>
+
+      </div>
+    );
+  };
+
+  // 0.5 LANDING PAGE RENDERER
+  if (viewMode === 'landing') {
+    return renderLandingPage();
+  }
+
   // 1.5 INITIAL DATA LOADING SCREEN (LOTTIE)
   if (currentUser && loading && tickets.length === 0) {
     return (
@@ -1099,6 +1618,17 @@ export default function App() {
           >
             <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">groups</span>
             Employees
+          </button>
+          
+          <button 
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium nav-item-transition btn-press text-on-surface-variant hover:bg-surface-container-high/60"
+            onClick={() => {
+              localStorage.setItem('viewMode', 'landing');
+              setViewMode('landing');
+            }}
+          >
+            <span className="material-symbols-outlined text-[20px] transition-transform duration-300 group-hover:scale-110">explore</span>
+            View Landing Page
           </button>
         </div>
 
