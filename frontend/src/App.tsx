@@ -55,9 +55,34 @@ interface User {
   role: 'ADMIN' | 'EMPLOYEE';
 }
 
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? (window.location.port === '5173' || window.location.port === '3000' ? 'http://localhost:8080/api' : '/api')
-  : '/api';
+const getApiBase = () => {
+  const { hostname, port, protocol } = window.location;
+  
+  // 1. Local development (localhost, 127.0.0.1, or private network IPs like 192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+  const isLocal = hostname === 'localhost' || 
+                  hostname === '127.0.0.1' || 
+                  /^192\.168\./.test(hostname) || 
+                  /^10\./.test(hostname) || 
+                  /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+                  
+  if (isLocal) {
+    // If accessing the dev server on port 5173 or 3000, talk to the Spring Boot backend on port 8080 of the same host
+    if (port === '5173' || port === '3000') {
+      return `${protocol}//${hostname}:8080/api`;
+    }
+    return '/api';
+  }
+  
+  // 2. S3 Static website hosting (points directly to the ALB DNS)
+  if (hostname.includes('s3-website')) {
+    return 'http://ticketdesk-m1-alb-756973487.ap-south-1.elb.amazonaws.com/api';
+  }
+  
+  // 3. ALB Direct or Custom Domain (use relative paths)
+  return '/api';
+};
+
+const API_BASE = getApiBase();
 
 // Helper date formatter defined in module scope
 const formatDate = (dateStr?: string) => {
