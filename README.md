@@ -12,23 +12,34 @@ graph TD
     classDef router fill:#201f1f,stroke:#ffb95f,stroke-width:2px,color:#e5e2e1;
     classDef compute fill:#2563eb,stroke:#b4c5ff,stroke-width:2px,color:#ffffff;
     classDef storage fill:#0e0e0e,stroke:#4edea3,stroke-width:2px,color:#e5e2e1;
+    classDef iam fill:#3f3f46,stroke:#a1a1aa,stroke-width:1px,color:#ffffff;
 
     User["💻 Client Browser<br>(React Frontend SPA)"]:::client
-    ALB["⚖️ Application Load Balancer<br>(ticketdesk-m1-alb)"]:::router
-    Fargate["⚙️ AWS ECS Fargate<br>(Spring Boot Container)"]:::compute
-    RDS["🗄️ Amazon RDS MySQL<br>(ticketdesk-db)"]:::storage
+    CF["🌐 CloudFront CDN<br>(ticketdesk-cdn)"]:::router
+    ALB["⚖️ Application Load Balancer<br>(ticketdesk-m1-alb)<br>[Public Subnets: 10.0.1.0/24, 10.0.2.0/24]"]:::router
+    Fargate["⚙️ AWS ECS Fargate<br>(Spring Boot Container)<br>[Private Subnets: 10.0.10.0/24, 10.0.11.0/24]"]:::compute
+    RDS["🗄️ Amazon RDS MySQL<br>(ticketdesk-db)<br>[Private Subnets: 10.0.10.0/24, 10.0.11.0/24]"]:::storage
     S3_Uploads["📦 Amazon S3 Bucket<br>(ticketdesk-uploads)"]:::storage
     S3_Frontend["🌐 Amazon S3 Website<br>(ticketdesk-frontend)"]:::storage
-
-    User -->|HTTP Requests| ALB
-    ALB -->|API Paths /api/*| Fargate
-    ALB -->|Root / & Assets| Fargate
-    Fargate -->|DB Read/Write| RDS
-    User -->|Presigned PUT Uploads| S3_Uploads
-    Fargate -->|Generate Presigned URL| S3_Uploads
-    User -.->|Alternative SPA Access| S3_Frontend
+    Lambda["⚡ AWS Lambda<br>(thumbnail-generator)"]:::compute
     
-    class User,ALB,Fargate,RDS,S3_Uploads,S3_Frontend external;
+    %% IAM Roles
+    ExecRole["🔑 ECS Execution Role<br>(execution-role)"]:::iam
+    TaskRole["🔑 ECS Task Role<br>(task-role)"]:::iam
+    LambdaRole["🔑 Lambda Role<br>(lambda-role)"]:::iam
+
+    User -->|1a. Request Static Assets| CF
+    CF -->|1b. Cache Origin| S3_Frontend
+    User -->|2. API Requests| ALB
+    ALB -->|3. Forward HTTP| Fargate
+    Fargate -->|4. DB Read/Write| RDS
+    Fargate -.->|5. Task Execution Auth| ExecRole
+    Fargate -.->|6. Task Runtime Auth| TaskRole
+    User -->|7. Presigned PUT Uploads| S3_Uploads
+    Fargate -->|8. Generate Presigned URL| S3_Uploads
+    S3_Uploads -->|9. ObjectCreated Event| Lambda
+    Lambda -.->|10. Execution Auth| LambdaRole
+    Lambda -->|11. Generate Thumbnail| S3_Uploads
 ```
 
 ---
@@ -43,6 +54,16 @@ graph TD
   1. Open the [EC2 Console](https://ap-south-1.console.aws.amazon.com/ec2/v2/home?region=ap-south-1).
   2. In the left navigation pane, under **Load Balancing**, click **Load Balancers**.
   3. Select **ticketdesk-m1-alb** to find the **DNS name** under the **Details** tab.
+
+---
+
+### 📍 Stage 1.5: Content Delivery & Edge Caching
+* **Service:** Amazon CloudFront — `ticketdesk-cdn`
+* **Why We Chose It:**
+  CloudFront is a global Content Delivery Network (CDN) service. By placing CloudFront in front of the S3 static website hosting bucket, UI assets (HTML, CSS, JS) are cached at edge locations globally. This minimizes page load times for end users and drastically reduces S3 read costs and traffic.
+* **Console Navigation:**
+  1. Open the [CloudFront Console](https://us-east-1.console.aws.amazon.com/cloudfront/v4/home).
+  2. Find and select the **ticketdesk-cdn** distribution to view its Domain Name and status.
 
 ---
 
@@ -86,20 +107,56 @@ graph TD
 
 ---
 
+### 📍 Stage 5: Serverless Image Processing
+* **Service:** AWS Lambda — `ticketdesk-thumbnail-generator`
+* **Why We Chose It:**
+  AWS Lambda is an event-driven serverless compute platform. When users upload attachments directly to the S3 uploads bucket, S3 fires an `ObjectCreated` trigger. This invokes the Lambda function asynchronously to process the image and save a mock thumbnail text file back to the bucket (`thumbnails/` prefix) on-demand, running without provisioning servers.
+* **Console Navigation:**
+  1. Open the [AWS Lambda Console](https://ap-south-1.console.aws.amazon.com/lambda/home?region=ap-south-1).
+  2. Select the **ticketdesk-thumbnail-generator** function to inspect the code, triggers, monitor execution counts, or view logs.
+
+---
+
+### 📍 Stage 6: VPC Network Segmentation
+* **Service:** AWS VPC — Subnets & Networking
+* **Why We Chose It:**
+  Our infrastructure is split across multiple Availability Zones (AZs) for high availability and separated into different security domains:
+  * **Public Subnets (`10.0.1.0/24`, `10.0.2.0/24`):** Accept inbound external connections (ALB) and outbound gateway routes (NAT Gateway).
+  * **Private Subnets (`10.0.10.0/24`, `10.0.11.0/24`):** Strictly isolate the database instance and backend ECS task instances. All egress is proxied through the NAT Gateway.
+* **Console Navigation:**
+  1. Open the [VPC Console](https://ap-south-1.console.aws.amazon.com/vpc/home?region=ap-south-1).
+  2. Navigate to **Subnets** or **Route Tables** to review routing policies.
+
+---
+
+### 📍 Stage 7: Security Governance (IAM Roles)
+* **Service:** AWS IAM Roles
+* **Why We Chose It:**
+  We implement tight, programmatic access controls:
+  * **ECS Execution Role (`ticketdesk-m1-execution-role`):** Allows container task bootstrapping (logs write to CloudWatch, config/secret values pull from SSM/Secrets Manager).
+  * **ECS Task Role (`ticketdesk-m1-task-role`):** Allows application runtime tasks (direct object writes, reads, and deletes inside the `ticketdesk-uploads` bucket).
+  * **Lambda Role (`ticketdesk-lambda-role`):** Permits basic Lambda execution log creation and read/write access to S3.
+* **Console Navigation:**
+  1. Open the [IAM Console](https://us-east-1.console.aws.amazon.com/iam/home).
+  2. Click **Roles** in the left sidebar and search for `ticketdesk-` prefix to view trust relationships and policies.
+
+---
+
 ## 🔗 Active Deployed Endpoints
 
 | Environment Component | Endpoint URL | Description |
 | :--- | :--- | :--- |
 | **Unified ALB URL (App & API)** | `http://ticketdesk-m1-alb-756973487.ap-south-1.elb.amazonaws.com` | Primary user-facing client application & routing gateway |
 | **Backend API Health Check** | `http://ticketdesk-m1-alb-756973487.ap-south-1.elb.amazonaws.com/health` | Returns `{"status":"UP"}` for service health triages |
-| **Static Website Mirror** | `http://ticketdesk-frontend-0ee57288.s3-website.ap-south-1.amazonaws.com` | Alternative public bucket serving static frontend assets |
+| **Static Website Mirror** | `http://ticketdesk-frontend-0ee57288.s3-website.ap-south-1.amazonaws.com` | Alternative public S3 website endpoint hosting static frontend assets |
+| **CloudFront CDN Distribution** | `http://ticketdesk-cdn.cloudfront.net` (Conceptual) | Global edge caching layer serving static UI assets securely |
 
 ---
 
 ## 🛠️ Security & Operational Best Practices
 
 > [!IMPORTANT]
-> **Database Isolation:** The RDS Instance has been deployed strictly in the **Private subnet range** (`10.0.11.0/24` and `10.0.12.0/24`). Public routing is blocked.
+> **Database Isolation:** The RDS Instance and ECS Fargate Tasks are deployed strictly in the **Private subnet range** (`10.0.10.0/24` and `10.0.11.0/24`). Public routing is blocked.
 > Only the ECS Fargate Tasks (running in private subnets) can connect to the database via RDS security group policies.
 
 > [!TIP]
