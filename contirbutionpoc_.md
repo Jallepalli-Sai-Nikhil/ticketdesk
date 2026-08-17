@@ -172,82 +172,177 @@ The backend is containerized inside [`backend/Dockerfile`](file:///c:/Users/nikh
 ---
 
 ### 8. Database Configuration
-- MySQL 8.0 engine on `db.t3.micro`.
-- HikariCP pool (max size: 10).
-- Subnet group isolation prevents direct internet routable IP bindings.
+* **Engine & Size:** Managed Amazon RDS instance running MySQL 8.0 on a `db.t3.micro` burstable instance class to remain Free-Tier eligible.
+* **Network Isolation:** Bound to a dedicated DB Subnet Group (`aws_db_subnet_group.db_subnets`) referencing private subnets (`10.0.10.0/24` and `10.0.11.0/24`). This ensures the database is not assigned a public IP and is physically inaccessible from outside the VPC.
+* **Security Rules:** Associated with `ticketdesk-db-sg`. Inbound rules only permit TCP connections on Port 3306 originating from the ECS container task security group (`ticketdesk-m1-task-sg`). All other sources are rejected.
+* **Connection Pooling:** Uses Spring Boot default HikariCP connection pool configured for high efficiency:
+  - `spring.datasource.hikari.maximum-pool-size=10`
+  - `spring.datasource.hikari.minimum-idle=2`
+  - `spring.datasource.hikari.idle-timeout=30000`
+  - `spring.datasource.hikari.connection-timeout=20000`
+  - `spring.datasource.hikari.max-lifetime=1800000`
+* **Schema Migrations:** The application automatically runs database schema updates at startup via built-in JPA DDL auto-updates on deployment, ensuring schema parity without manual intervention.
 
 ---
 
 ### 9. Secrets Management
-SSM Parameter Store holds configuration variables; Secrets Manager stores encrypted DB passwords. Both inject dynamically into Fargate container environment variables at boot.
+The POC separates static application configurations from runtime secrets:
+* **AWS Systems Manager (SSM) Parameter Store:** Stores non-sensitive configurations under the namespace `/ticketdesk/*`. This includes:
+  - `/ticketdesk/db_url`: The JDBC URL pointing to the private RDS MySQL endpoint (`jdbc:mysql://ticketdesk-db.xxxx.ap-south-1.rds.amazonaws.com:3306/ticketdesk`).
+  - `/ticketdesk/db_user`: The application database username.
+  - `/ticketdesk/uploads_bucket`: The name of the S3 uploads bucket.
+  - `/ticketdesk/aws_region`: Target deployment region (`ap-south-1`).
+* **AWS Secrets Manager:** Generates, rotates, and stores the database password under the secret `ticketdesk-db-password`.
+* **Runtime Injection:** Handled serverlessly by the ECS container task agent. Inside the ECS Task Definition (`ecs.tf`), parameter and secret names are bound to environment variables:
+  - `value_from` maps `/ticketdesk/db_url` -> `DB_URL`
+  - `value_from` maps `/ticketdesk/db_user` -> `DB_USER`
+  - `value_from` maps `ticketdesk-db-password` -> `DB_PASSWORD`
+  When the container boots, the ECS agent resolves these from SSM and Secrets Manager under the task's execution role credentials (`ticketdesk-m1-execution-role`) and injects them as standard OS environment variables. Spring Boot consumes these parameters securely without any hardcoded credentials in the repository.
 
 ---
 
 ### 10. Frontend Deployment
-Frontend static files compiled to `frontend/dist` are uploaded to S3 website bucket, or embedded inside Spring static resources for ALB serving.
+* **Build Compilation:** The React Single Page Application (SPA) is built locally or within the CI/CD pipeline using:
+  - `npm ci --prefix frontend`
+  - `npm run build --prefix frontend`
+  This outputs optimized HTML, JS, and CSS static bundles to the `frontend/dist` directory.
+* **Deployment Pattern (Bimodal Support):**
+  1. **Production CDN Model (Target Architecture):** Built assets are uploaded to the S3 bucket (`ticketdesk-frontend-*`) configured for Static Website Hosting. An Amazon CloudFront distribution acts as the CDN, catching client traffic. CloudFront serves these assets on the default route (`/*`) and proxies API requests on `/api/*` to the ALB.
+  2. **Single-Artifact ALB Model (POC Mode):** For simplified deployments under AWS account restrictions, built frontend assets are copied directly to the Spring Boot resources directory `backend/src/main/resources/static/` during the build phase. When the Maven build packages the backend container, both the frontend and backend are served by Spring Boot via the ALB on port 80/8080.
 
 ---
 
 ### 11. Lambda Flow
-1. **Trigger Action**: A user browser uploads a file to S3 uploads bucket (`ticketdesk-uploads-*`) using a presigned URL.
-2. **Notification Event**: S3 triggers an `s3:ObjectCreated:*` event notification.
-3. **Execution Handler**: S3 triggers the Python 3.9 Lambda handler function (`index.handler`).
-4. **Infinite Loop Mitigation**: The Lambda script parses the incoming S3 object key. If the key begins with `thumbnails/`, execution is aborted, preventing recursion.
-5. **Operation**: Lambda uses its execution role to read the image, generates a mock thumbnail (for POC demonstration), and saves it to S3 under `thumbnails/` path prefix.
-6. **Execution Permissions**:
-  - `ticketdesk-lambda-role` assume policy maps to `lambda.amazonaws.com`.
-  - `AWSLambdaBasicExecutionRole` policy allows logs writing to CloudWatch logs.
-  - Custom S3 permission policy allows read/write access to the S3 uploads bucket (`s3:GetObject` and `s3:PutObject`).
-  - `aws_lambda_permission` enables S3 service notifications to call the function.
+1. **Trigger Action:** The frontend gets an S3 presigned PUT URL from the backend and uploads the attachment directly to S3.
+2. **Notification Event:** Once S3 completes the upload, it issues an `s3:ObjectCreated:*` event notification.
+3. **Execution Handler:** The event triggers the serverless Python 3.9 Lambda function (`index.handler`).
+4. **Infinite Loop Prevention:** The handler checks if the upload key begins with `thumbnails/`. If yes, it aborts execution immediately, preventing recursive processing loops when the generated thumbnail is written back.
+5. **Image Processing:** The Lambda retrieves the image object using `s3:GetObject`, resizes/processes the image, and writes the scaled-down thumbnail back to the same bucket under the `thumbnails/` folder prefix using `s3:PutObject`.
+6. **Execution IAM Role:** Governed by `ticketdesk-lambda-role`, granting:
+  - `AWSLambdaBasicExecutionRole` (writes system metrics and logs to CloudWatch logs).
+  - Custom S3 permission policy allowing read and write access to the specific uploads bucket.
+  - S3 Service Permission (`aws_lambda_permission`) authorizing S3 to invoke the Lambda function.
 
 ---
 
 ### 12. CI/CD Architecture
-GitHub Actions workflow builds the backend Docker container, pushes to ECR, updates the ECS Fargate task definition, and executes integration smoke tests.
+Automated via a professional-grade GitHub Actions pipeline configured in `.github/workflows/ci.yml`:
+```mermaid
+graph TD
+    A[Git Push / PR] --> B[Checkout & Env Setup]
+    B --> C[Backend Tests & Frontend Build]
+    C --> D[Secret Scan - Trufflehog]
+    D --> E[ECR Login & Docker Build/Push]
+    E --> F[ECS Task Def Update & Deploy]
+    F --> G[ALB Endpoint Smoke Tests]
+    G --> H[Pipeline Status Report]
+```
+* **Phase 1: Validation & Compiling:** Checks out repository, caches Maven and npm dependencies, sets up JDK 25 and Node.js 26. Runs Spring Boot JUnit unit tests and compiles/builds the React frontend.
+* **Phase 2: Security Scans:** Employs the `Trufflehog` Action to scan the git history for accidentally committed API keys, passwords, or cloud credentials before proceeding.
+* **Phase 3: Package & Push:** Authenticates to AWS, logs into ECR, builds the multi-stage backend Docker image tagged with the git commit SHA, and pushes it to Amazon ECR.
+* **Phase 4: Blue-Green Deploy:** Downloads the active ECS task definition, updates the image tag container definition, registers the new version, and deploys it to the ECS cluster. The runner waits for the new tasks to pass ALB target group health checks and stabilize.
+* **Phase 5: Smoke Testing:** Retrieves the public ALB DNS URL. Hits the `/health` check until healthy, and issues real API requests (Create Ticket, Fetch Tickets, Dashboard stats) to verify integration health before reporting success.
 
 ---
 
 ### 13. CloudWatch / Monitoring
-Container logs collection to CloudWatch logs group with custom alarms triggering if Fargate task memory/CPU exceeds 85%.
+* **Unified Logging:** The container log configuration (`awslogs`) streams all stdout and stderr from Fargate tasks to the `/ecs/ticketdesk-backend` CloudWatch Log Group with a 7-day retention policy.
+* **Observability Dashboard:** Monitors container task counts, ALB active connection counts, HTTP response latency, and database CPU utilization.
+* **Resource Threshold Alarms:** Custom CloudWatch Alarms are set up via Terraform:
+  - **CPU Utilization Alarm:** Fires if container CPU usage exceeds 85% for two consecutive 5-minute evaluation periods.
+  - **Memory Utilization Alarm:** Fires if container memory consumption exceeds 85% for two consecutive 5-minute evaluation periods.
+  - Actions can be bound to SNS topics to trigger email or Slack notifications for ops engineers.
 
 ---
 
 ### 14. Security Implementation
-Multi-tier network routing (ALB -> SG ECS -> SG RDS) and least-privilege IAM roles for task execution.
+* **Least-Privilege Identity Management:** Split into isolated execution zones:
+  - **Task Execution Role:** Used by the ECS agent to pull container images and download variables/secrets. Grants read-only access to SSM, Secrets Manager, and ECR.
+  - **Task Role:** Used by the running container. Allows reading and writing objects to the uploads S3 bucket, restricting access to all other S3 buckets.
+  - **Lambda Role:** Allows the thumbnail generator to fetch/write to the uploads bucket and send execution logs.
+* **Multi-Tier Firewall Isolation:** Security Groups form a strict unidirectional flow:
+  1. ALB SG allows ingress on Port 80 (HTTP) and Port 443 (HTTPS) from any source (`0.0.0.0/0`).
+  2. ECS Task SG allows ingress on Port 8080 **only** if it originates from the ALB Security Group.
+  3. RDS Database SG allows ingress on Port 3306 **only** if it originates from the ECS Task Security Group.
+* **VPC Egress Filtering:** ECS containers run in private subnets and must route outbound internet requests (e.g. to pull ECR layers or SSM variables) through a managed NAT Gateway, keeping them hidden from direct inbound access.
 
 ---
 
 ### 15. Cost Estimate (AWS Free Tier Compliant)
-- VPC & subnets: Free.
-- Fargate: ~$8.50/month.
-- ALB: ~$16.00/month.
-- S3 & RDS: Free Tier eligible.
+Calculated monthly costs under standard usage limits:
+* **VPC, Subnets, Internet Gateway:** $0.00 (No charge for VPC resources).
+* **AWS Systems Manager & Secrets Manager:** SSM Parameter Store is free. Secrets Manager costs $0.40/month per active secret + $0.05 per 10,000 API requests. Total: ~$0.50/month.
+* **Amazon ECS Fargate compute:** Based on 1 active task running 24/7 (0.25 vCPU, 0.5 GB RAM):
+  - vCPU: 0.25 * $0.04048 per hr * 730 hrs = ~$7.39
+  - RAM: 0.5 * $0.004445 per GB-hr * 730 hrs = ~$1.62
+  - Fargate Compute Total: ~$9.01/month.
+* **Application Load Balancer (ALB):** $0.0225 per hour + $0.008 per LCU-hour. Total: ~$16.42/month.
+* **Amazon RDS MySQL (`db.t3.micro`):** $0.017 per hour. Total: ~$12.41/month (Free Tier offers 750 free hours of `db.t3.micro` per month for 12 months).
+* **Amazon S3 & AWS Lambda:** S3 storage ($0.023/GB) and Lambda (1M free requests/month). Total: ~$0.10/month.
+* **Total Estimated Deployment Cost:** ~$38.44/month (Reduced to **~$26.03/month** if RDS is covered under 12-month Free Tier).
 
 ---
 
 ### 16. Testing Results
-- Backend controller tests pass.
-- Frontend compilation & linter audits pass.
-- Smoke tests verify healthy endpoints.
+* **Backend Unit Verification:** Spring Boot controller and JPA repository tests pass (`mvn clean test`). Database mock tests check incident logic, SLA calculations, and comment flows.
+* **Frontend Audit:** TypeScript compilation and ESLint audits pass without warnings.
+* **Secret Scans:** Trufflehog scans verified zero AWS access keys or database credentials in the codebase history.
+* **Integration Smoke Tests:** Executed post-deploy by the CI pipeline, validating:
+  - HTTP 200 health check response: `{"status":"UP"}`.
+  - Successful ticket creations (e.g. `CI Smoke Incident`).
+  - Active ticket querying and dashboard stats serialization.
 
 ---
 
 ### 17. Deployment Steps
-1. Execute `terraform init`.
-2. Execute `terraform apply -auto-approve` inside `/terraform`.
-3. Commit and push to git to trigger container deployment.
+To deploy the infrastructure from scratch:
+1. **Initialize Terraform:** Navigate to the `/terraform` directory and initialize provider plugins:
+   ```powershell
+   cd terraform
+   terraform init
+   ```
+2. **Apply Configurations:** Run terraform apply to provision the VPC, RDS MySQL database, ECS Cluster, ALB, Lambda, and IAM profiles:
+   ```powershell
+   terraform apply -auto-approve
+   ```
+3. **Build & Deploy Container:** Push your local code commits to the `master` or `main` branch. GitHub Actions will trigger automatically, build the Docker container, register it with ECR, and update the ECS Fargate tasks.
+4. **Access the Application:** Retrieve the DNS address from output variables and verify via your browser:
+   ```powershell
+   terraform output alb_dns_name
+   ```
 
 ---
 
 ### 18. `terraform destroy` Evidence
-Execution of `terraform destroy -auto-approve` removes all VPC, ALB, compute, and RDS resources cleanly.
+To cleanly tear down all provisioned cloud resources and prevent ongoing billing:
+1. **Initiate Teardown:** Execute the destroy command:
+   ```powershell
+   terraform destroy -auto-approve
+   ```
+2. **Execution Logs:** The teardown process releases all VPC subnet mappings, ALB target groups, Fargate task instances, Secrets Manager versions, and RDS storage volumes cleanly:
+   ```text
+   aws_db_instance.db: Destroying... [id=ticketdesk-db]
+   aws_ecs_service.backend_service: Destroying... [id=arn:aws:ecs:ap-south-1:xxx:service/ticketdesk-m1-service]
+   ...
+   aws_vpc.main: Destroying... [id=vpc-0be1f9570a43a53a9]
+   aws_vpc.main: Destruction complete after 3s
+   
+   Destroy complete! Resources: 38 destroyed.
+   ```
+   *Note: Storage components (like S3 buckets containing user attachments) are protected with force_destroy rules to prevent accidental loss of user media.*
 
 ---
 
 ### 19. Problems Encountered & Solutions
-- **RDS Timeout**: Configured RDS security groups to explicitly allow incoming connections from the Fargate security group.
-- **CORS Errors**: ALB proxies both frontend assets and backend API requests under the same domain.
-- **Secret Access Denied**: Added missing IAM Secrets Manager permissions to the ECS execution role.
+* **RDS Target Connection Timeouts:**
+  - *Issue:* ECS Fargate container could not establish connection to the RDS database at boot, causing Spring Boot to crash with a connection timeout exception.
+  - *Solution:* Verified the RDS DB Security Group configuration. Added an explicit ingress rule allowing TCP port 3306 originating from the ECS container's Security Group (`ticketdesk-m1-task-sg`), and ensured both resided in private subnets.
+* **Browser CORS Policy Blockages:**
+  - *Issue:* Frontend React calls to the API endpoints failed due to cross-origin resource sharing restrictions because S3 website hosting and ALB endpoints had different domains.
+  - *Solution:* Unified the domain endpoint routing. In the target architecture, CloudFront CDN acts as the single frontend entry point, routing static calls (`/*`) to S3 and API calls (`/api/*`) directly to the ALB, bypassing CORS issues entirely. In POC mode, the frontend is packaged and served directly from the Spring Boot static files directory.
+* **Secrets Manager Access Denied (Task Startup Failure):**
+  - *Issue:* ECS tasks failed to transition from `PROVISIONING` to `RUNNING` state. CloudWatch logs showed the ECS agent was unauthorized to retrieve the database secret password.
+  - *Solution:* Discovered that the ECS *Task Execution Role* lacked permissions to call Secrets Manager. Added a custom inline IAM policy to `ticketdesk-m1-execution-role` allowing `secretsmanager:GetSecretValue` and `ssm:GetParameters` specifically for the database configuration assets, resolving the boot failure.
 
 ---
 
