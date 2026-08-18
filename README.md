@@ -13,33 +13,94 @@ graph TD
     classDef compute fill:#2563eb,stroke:#b4c5ff,stroke-width:2px,color:#ffffff;
     classDef storage fill:#0e0e0e,stroke:#4edea3,stroke-width:2px,color:#e5e2e1;
     classDef iam fill:#3f3f46,stroke:#a1a1aa,stroke-width:1px,color:#ffffff;
+    classDef network fill:#18181b,stroke:#a855f7,stroke-width:2px,color:#e5e2e1;
+    classDef config fill:#7c2d12,stroke:#f97316,stroke-width:1px,color:#ffffff;
 
-    User["💻 Client Browser<br>(React Frontend SPA)"]:::client
+    Client["💻 Client Browser<br>(React Frontend SPA)"]:::client
     CF["🌐 CloudFront CDN<br>(ticketdesk-cdn)"]:::router
-    ALB["⚖️ Application Load Balancer<br>(ticketdesk-m1-alb)<br>[Public Subnets: 10.0.1.0/24, 10.0.2.0/24]"]:::router
-    Fargate["⚙️ AWS ECS Fargate<br>(Spring Boot Container)<br>[Private Subnets: 10.0.10.0/24, 10.0.11.0/24]"]:::compute
-    RDS["🗄️ Amazon RDS MySQL<br>(ticketdesk-db)<br>[Private Subnets: 10.0.10.0/24, 10.0.11.0/24]"]:::storage
-    S3_Uploads["📦 Amazon S3 Bucket<br>(ticketdesk-uploads)"]:::storage
-    S3_Frontend["🌐 Amazon S3 Website<br>(ticketdesk-frontend)"]:::storage
-    Lambda["⚡ AWS Lambda<br>(thumbnail-generator)"]:::compute
-    
-    %% IAM Roles
-    ExecRole["🔑 ECS Execution Role<br>(execution-role)"]:::iam
-    TaskRole["🔑 ECS Task Role<br>(task-role)"]:::iam
-    LambdaRole["🔑 Lambda Role<br>(lambda-role)"]:::iam
+    IGW["🛣️ Internet Gateway<br>(ticketdesk-igw)"]:::network
 
-    User -->|1a. Request Static Assets| CF
-    CF -->|1b. Cache Origin| S3_Frontend
-    User -->|2. API Requests| ALB
-    ALB -->|3. Forward HTTP| Fargate
-    Fargate -->|4. DB Read/Write| RDS
-    Fargate -.->|5. Task Execution Auth| ExecRole
-    Fargate -.->|6. Task Runtime Auth| TaskRole
-    User -->|7. Presigned PUT Uploads| S3_Uploads
-    Fargate -->|8. Generate Presigned URL| S3_Uploads
-    S3_Uploads -->|9. ObjectCreated Event| Lambda
-    Lambda -.->|10. Execution Auth| LambdaRole
-    Lambda -->|11. Generate Thumbnail| S3_Uploads
+    subgraph VPC ["AWS VPC (10.0.0.0/16)"]
+        
+        subgraph PublicSubnets ["Public Subnets"]
+            PubSubA["Public Subnet A<br>(10.0.1.0/24)"]:::network
+            PubSubB["Public Subnet B<br>(10.0.2.0/24)"]:::network
+            
+            ALB_SG["🔒 ALB Security Group<br>(ticketdesk-m1-alb-sg)"]:::iam
+            ALB["⚖️ Application Load Balancer<br>(ticketdesk-m1-alb: Port 80)"]:::router
+            NAT["🔌 NAT Gateway<br>(ticketdesk-nat-gw)"]:::network
+            TG["🎯 ALB Target Group<br>(ticketdesk-m1-tg: Port 8080)"]:::router
+        end
+        
+        subgraph PrivateSubnets ["Private Subnets"]
+            PrivSubA["Private Subnet A<br>(10.0.10.0/24)"]:::network
+            PrivSubB["Private Subnet B<br>(10.0.11.0/24)"]:::network
+            
+            Task_SG["🔒 Task Security Group<br>(ticketdesk-m1-task-sg)"]:::iam
+            
+            subgraph ECS_Cluster ["ECS Cluster (ticketdesk-m1-cluster)"]
+                ECS_Service["📦 ECS Service<br>(ticketdesk-m1-service)"]:::compute
+                Task_Def["📋 Task Definition<br>(ticketdesk-m1-backend-task)"]:::compute
+                ECS_Task["⚙️ ECS Fargate Task<br>(Spring Boot Container)"]:::compute
+            end
+            
+            DB_SG["🔒 DB Security Group<br>(ticketdesk-db-sg)"]:::iam
+            RDS["🗄️ RDS MySQL Instance<br>(ticketdesk-db: Port 3306)"]:::storage
+        end
+        
+    end
+
+    subgraph Storage ["S3 Storage & Processing"]
+        S3_Front["🌐 S3 Frontend Bucket<br>(ticketdesk-frontend)"]:::storage
+        S3_Uploads["📦 S3 Uploads Bucket<br>(ticketdesk-uploads)"]:::storage
+        Lambda["⚡ AWS Lambda<br>(thumbnail-generator)"]:::compute
+    end
+
+    subgraph ECR_Reg ["Container Registry"]
+        ECR["🐳 ECR Repository<br>(ticketdesk-backend)"]:::storage
+    end
+
+    subgraph Config ["Configuration & Security"]
+        SSM["⚙️ SSM Parameter Store"]:::config
+        Secrets["🔑 Secrets Manager"]:::config
+    end
+
+    subgraph IAM_Roles ["IAM Identities"]
+        ExecRole["🔑 ECS Execution Role<br>(ticketdesk-m1-execution-role)"]:::iam
+        TaskRole["🔑 ECS Task Role<br>(ticketdesk-m1-task-role)"]:::iam
+        LambdaRole["🔑 Lambda Execution Role<br>(ticketdesk-lambda-role)"]:::iam
+    end
+
+    %% Routing Connections
+    Client -->|1a. Request Static HTML/JS/CSS| CF
+    CF -->|1b. Serve Static Assets| S3_Front
+    Client -->|2. HTTP Request Port 80| IGW
+    IGW -->|3. Route to ALB| ALB
+    ALB_SG -.->|Guard ingress/egress| ALB
+    ALB -->|4. Forward to Target Group| TG
+    TG -->|5. Forward Port 8080| ECS_Task
+    Task_SG -.->|Guard ingress| ECS_Task
+    ECS_Task -->|6. Connect Port 3306| RDS
+    DB_SG -.->|Guard port 3306 ingress| RDS
+
+    %% Infrastructure dependencies
+    ECS_Task -.->|7. Launch Auth| ExecRole
+    ECS_Task -.->|8. Access Auth| TaskRole
+    ExecRole -.->|9a. Pull Parameters| SSM
+    ExecRole -.->|9b. Pull DB Password| Secrets
+    ExecRole -.->|10. Pull Container Image| ECR
+
+    %% Private Task Internet Access
+    ECS_Task -->|11. Outbound requests| NAT
+    NAT -->|12. Route Outbound| IGW
+
+    %% File upload presigned URL flow
+    Client -->|13a. Request upload PUT URL| ECS_Task
+    ECS_Task -.->|13b. Return presigned URL| Client
+    Client -->|14. Direct upload using PUT URL| S3_Uploads
+    S3_Uploads -->|15. S3 ObjectCreated Event| Lambda
+    Lambda -.->|16. Lambda runtime Auth| LambdaRole
+    Lambda -->|17. Save generated thumbnail| S3_Uploads
 ```
 
 ---
